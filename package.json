@@ -5,6 +5,7 @@
   "type": "module",
   "engines": { "node": ">=24.15.0 <25" },
   "scripts": {
+    "lockfile:check": "node scripts/check-lockfile.ts",
     "content:build": "tsx scripts/build-catalog.ts",
     "dev": "npm run content:build && astro dev --host 127.0.0.1",
     "dev:mcp": "npm run content:build && tsx src/server/start.ts",
@@ -14,7 +15,7 @@
     "typecheck": "npm run content:build && astro check && tsc --noEmit",
     "test": "npm run content:build && tsx --test tests/*.test.ts",
     "test:site": "npm run build && tsx --test tests/site.integration.ts",
-    "check": "npm run typecheck && npm test && npm run test:site"
+    "check": "npm run lockfile:check && npm run typecheck && npm test && npm run test:site"
   },
   "dependencies": {
     "@modelcontextprotocol/node": "2.1.2",

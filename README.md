@@ -8,6 +8,8 @@
 
 使用 Node.js **24.15 或更新的 24.x LTS** 与 npm。仓库提交了锁文件。
 
+项目级 `.npmrc` 使用官方 npm registry，避免镜像同步滞后留下不完整的跨平台可选依赖；它不修改用户的全局设置。更新依赖后运行 `npm run lockfile:check`，确认各平台锁记录完整。此检查只依赖 Node，CI 会在 `npm ci` 前执行。
+
 ```sh
 npm ci
 npm run dev
@@ -27,6 +29,7 @@ npm run dev:mcp
 
 | 命令 | 用途 |
 | --- | --- |
+| `npm run lockfile:check` | 在安装前检查锁文件中的版本、来源和完整性记录，正确保留 workspace/link 与 bundled 例外 |
 | `npm run content:build` | 校验 Markdown、元信息、词表、变量、图片和生成记录，生成共享快照 |
 | `npm run dev` | 先构建内容，再启动画廊开发服务器 |
 | `npm run dev:mcp` | 先构建内容，再启动 MCP |
