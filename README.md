@@ -2,7 +2,7 @@
 
 看图片，找到动漫风格提示词，填入自己的主角，再复制到图像生成工具。
 
-目前有一条完整、可运行的真实样例：**画师的夏日晴空**。它的原始提示词、实际生成图、变量与已知生成条件共同保存在仓库中；未知的底层模型、版本和参数如实保留为未知。后续的多用途内容、插件安装和公开托管分别由 [Issue #3](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/3)、[Issue #4](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/4)、[Issue #5](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/5) 推进。
+目前收录六条独立生成的真实样例，覆盖头像、角色立绘、场景、壁纸、漫画、插画、表情包与贴纸。每条的原始提示词、实际生成图、变量与已知生成条件共同保存在仓库中；未知的底层模型、版本和种子如实保留为未知。插件安装和公开托管分别由 [Issue #4](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/4)、[Issue #5](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/5) 推进。
 
 ## 本地运行
 
@@ -39,9 +39,12 @@ npm run dev:mcp
 | `npm run typecheck` | Astro 与 TypeScript 类型检查 |
 | `npm test` | 内容、共享规则和真实 MCP HTTP 客户端测试 |
 | `npm run test:site` | 构建站点，验证静态页面、公开 JSON 与真实 MCP 的一致性 |
+| `npm run test:browser` | 构建并用真实 Chrome/Chromium 验证手机、键盘、分享、分页、复制与归档 |
 | `npm run check` | 执行全部检查；CI 使用同一入口 |
 
 维护内容后重新执行内容构建，并重启 MCP 以加载新快照。网页开发服务器会读取更新后的构建产物。`.env.example` 说明可配置项；构建脚本直接读取进程环境变量，**不会自动加载 `.env` 文件**。
+
+浏览器检查使用本机 Chrome/Chromium，不下载浏览器；可通过 `CHROME_BIN` 指定可执行文件。Windows 默认查找已安装的 Chrome，Linux 查找 `/usr/bin/google-chrome` 或 Chromium。CI 的 Ubuntu runner 已包含浏览器。验收使用临时独立内容与浏览器配置，后台窗口隐藏，服务只监听回环地址与临时端口；不会修改现有浏览器配置。
 
 如需在另一个来源或子路径构建，把同一组 `SITE_URL` 与 `SITE_BASE_PATH` 环境变量传给构建过程。例如 PowerShell：
 
@@ -65,13 +68,17 @@ npm run build
 
 成功结果包含 `ok: true`、`catalog_revision` 和 `data`。搜索默认每次 5 条、最多 20 条；详情默认不展开示例。查询上限为 256 个 Unicode 字符，变量最多 32 项、每项最多 2,000 个 Unicode 字符，HTTP 请求体上限为 128 KiB。实际变量还受各自声明的取值与长度限制。
 
+画廊和 MCP 共用确定性关键词检索：用途、画风、模型词表及中英文别名优先，再匹配名称、关键词、简介与正文词项。空格分隔的多个关键词须同时匹配；同维度筛选是 OR，不同维度是 AND，同分按稳定 ID 排序。`model` 接受词表 ID 或别名，也允许查询尚无兼容性记录的模型；明确不兼容项被排除，未知项仍标记未知。`verified_only: true` 需要指定模型，且只返回该模型的已验证条目。当前六条没有具体模型验证记录，因此“仅已验证”不会产生结果。游标绑定完整查询、筛选、每页数量与内容版本，条件改变后应从第一页开始。
+
+首页的用途与画风可多选，模型名称可填写；地址会保存关键词、各筛选维度、每页数量与分页游标，刷新、分享和浏览器前进后退均可恢复。卡片“复制原文”按需读取对应模板；详情提供默认值、实时变量校验、原文与填写后复制。若有独立负面模板，正向与负面分别展示和复制。剪贴板受限时会选择文本，供用户手动复制。
+
 实现使用官方 TypeScript SDK v2，支持 2026-07-28 协议与 SDK 的 2025 协议兼容路径。v2 客户端可设置 `versionNegotiation: { mode: 'auto' }`。在旧协议路径上，SDK 会把联合输出 Schema 与结构化结果投影到 `{ result: ... }` 包装中；文本内容仍提供业务结果 JSON。自动化同时验证了两条传输路径。普通 MCP 连接不等于已安装能跨项目自动发现的任务 Skill；插件接入会在后续任务提供。
 
 ## 内容与结构
 
 ```text
 content/
-  taxonomy.json                    用途、画风及中英文别名
+  taxonomy.json                    用途、画风、模型及中英文别名
   prompts/*.md                     每条独立的 YAML 元信息 + Markdown 正文
 public/images/                     原图与实际缩略图
 src/content/build.ts               校验、图片解码、稳定版本计算
@@ -82,10 +89,12 @@ src/server/                        Node Streamable HTTP MCP
 tests/                             内容边界、真实传输与静态产物一致性
 ```
 
-由同一内容构建生成 `generated/catalog.json` 与 `public/catalog.json`；后者会进入静态站点。产物不手工编辑、不提交，网页和 MCP 共同读取此快照。内容快照与条目修订均使用 SHA-256，包含正文、元信息与图片字节，构建不写入当前时间。同样内容与站点配置会得到同样修订号。
+由同一内容构建生成完整的 `generated/catalog.json`、仅供检索的 `public/catalog.json`，以及按条目读取的 `public/data/prompts/<id>.json`。首页只内嵌摘要和去重排序的正文词项，不下载全库可直接使用的模板或默认值；卡片复制、详情与大图均按需读取。静态画廊独立于 MCP 运行。产物不手工编辑、不提交，网页和 MCP 使用相同的 `catalog_revision`。内容快照与条目修订均使用 SHA-256，包含正文、元信息与图片字节，构建不写入当前时间。同样内容与站点配置会得到同样修订号。
 
-模板使用 `{subject}` 形式的占位符，只做一次字面替换；用户填写的花括号、换行、语言与 `$` 字符都保留，不执行表达式或递归展开。草稿与归档记录不进入公开快照。只有已发布且具有可解码真实示例图的条目才可公开读取。
+模板使用 `{subject}` 形式的占位符，只做一次字面替换；用户填写的花括号、换行、语言与 `$` 字符都保留，不执行表达式或递归展开。草稿不公开；归档仅保留稳定详情链接、归档说明与已发布替代项，正文不进入索引或 MCP，也不保留旧的按需正文文件。只有已发布且具有可解码真实示例图的条目才可公开读取。正式内容目前没有归档历史，自动化使用明确标记的临时夹具验证归档行为。
 
 新增条目时复制现有 Markdown 作为字段参考，分配稳定 ID，记录实际生成提示词、变量和来源。若更新模板，需要提高 `template_version` 并保留历史示例的原始生成提示词；当前版本的示例必须能由对应模板和变量准确还原。不要把设计预览图冒充成经过独立验证的多个示例。文本与图片各自的许可记录在 `source` 中，当前样例尚未指定独立许可。
 
-本任务对应 [Issue #2](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/2)；完整产品约束见 [开发规格](docs/specs/anime-prompt-library-v1.md) 与 [实施拆分](docs/plans/v1-implementation.md)。
+新增用途、画风或模型时先在 `taxonomy.json` 添加稳定 ID、中文名称及别名，再在条目里引用。网页筛选项与 MCP facets 都从词表构建，不需要修改页面或工具契约。模型适用性必须引用模型词表，并按真实证据填写 `verified`、`declared`、`unknown` 或 `incompatible`，不能从生成工具名称推断底层模型支持。归档时设置 `status: archived`，可填 `archive_note`；`related_ids` 中的替代项必须为当前已发布条目。
+
+基础流程对应 [Issue #2](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/2)，多用途画廊对应 [Issue #3](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/3)；完整产品约束见 [开发规格](docs/specs/anime-prompt-library-v1.md) 与 [实施拆分](docs/plans/v1-implementation.md)。

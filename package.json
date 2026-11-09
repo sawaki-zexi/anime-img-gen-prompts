@@ -15,7 +15,8 @@
     "typecheck": "npm run content:build && astro check && tsc --noEmit",
     "test": "npm run content:build && tsx --test tests/*.test.ts",
     "test:site": "npm run build && tsx --test tests/site.integration.ts",
-    "check": "npm run lockfile:check && npm run typecheck && npm test && npm run test:site"
+    "test:browser": "npm run build && tsx --test tests/browser.integration.ts",
+    "check": "npm run lockfile:check && npm run typecheck && npm test && npm run test:site && tsx --test tests/browser.integration.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/node": "2.1.2",

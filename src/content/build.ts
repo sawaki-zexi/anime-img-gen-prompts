@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
-import { readdir, readFile, realpath, mkdir, writeFile } from 'node:fs/promises';
+import { readdir, readFile, realpath, mkdir, writeFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import matter from 'gray-matter';
 import sharp from 'sharp';
 import { authoredPromptSchema, catalogSchema, taxonomySchema, type Catalog, type Prompt } from '../lib/schema.ts';
-import { placeholderPattern, renderPrompt } from '../lib/catalog.ts';
+import { createSearchCatalog, normalize, placeholderPattern, renderPrompt } from '../lib/catalog.ts';
 
 export interface BuildOptions {
   contentDir: string;
@@ -42,9 +42,17 @@ export async function buildCatalog(options: BuildOptions): Promise<Catalog> {
   const taxonomy = taxonomySchema.parse(JSON.parse(await readFile(path.join(options.contentDir, 'taxonomy.json'), 'utf8')));
   for (const terms of Object.values(taxonomy)) {
     if (new Set(terms.map(term => term.id)).size !== terms.length) throw new Error('词表 ID 重复');
+    const aliases = new Map<string, string>();
+    for (const term of terms) {
+      for (const alias of [term.id, term.label, ...term.aliases].map(normalize)) {
+        if (aliases.has(alias) && aliases.get(alias) !== term.id) throw new Error(`词表别名冲突: ${alias}`);
+        aliases.set(alias, term.id);
+      }
+    }
   }
   const files = await markdownFiles(path.join(options.contentDir, 'prompts'));
   const records: Prompt[] = [];
+  const archives: Catalog['archives'] = [];
   const allIds = new Set<string>();
   for (const filename of files) {
     try {
@@ -66,6 +74,13 @@ export async function buildCatalog(options: BuildOptions): Promise<Catalog> {
       }
       for (const field of ['use_cases', 'styles'] as const) {
         for (const id of authored[field]) if (!taxonomy[field].some(term => term.id === id)) throw new Error(`未知词表引用 ${field}: ${id}`);
+      }
+      for (const model of authored.model_compatibility) {
+        if (!taxonomy.models.some(term => term.id === model.model)) throw new Error(`未知词表引用 models: ${model.model}`);
+      }
+      const url = new URL(`${basePath}prompts/${authored.id}/`, site.origin).href;
+      if (authored.status === 'archived') {
+        archives.push({ id: authored.id, title: authored.title, status: 'archived', updated_at: authored.updated_at, url, related_ids: authored.related_ids, ...(authored.archive_note ? { archive_note: authored.archive_note } : {}) });
       }
       // Drafts are validated as authored data, but their body and images never enter the public snapshot.
       if (authored.status !== 'published') continue;
@@ -92,13 +107,13 @@ export async function buildCatalog(options: BuildOptions): Promise<Catalog> {
         }
         examples.push(resolved);
       }
-      const body = { ...authored, template, examples, url: new URL(`${basePath}prompts/${authored.id}/`, site.origin).href };
+      const body = { ...authored, template, examples, url };
       const prompt_revision = hash(canonicalJson({ body, assets }));
       const prompt: Prompt = { ...body, prompt_revision };
       // A recorded example using the current template version must reproduce its actual prompt.
       // Older versions retain their historical prompt independently of subsequent template edits.
       for (const example of examples.filter(item => item.template_version === authored.template_version)) {
-        const snapshot = { schema_version: '1' as const, catalog_revision: prompt_revision, site_url: site.origin, base_path: basePath, taxonomy, prompts: [prompt] };
+        const snapshot = { schema_version: '1' as const, catalog_revision: prompt_revision, site_url: site.origin, base_path: basePath, taxonomy, prompts: [prompt], archives: [] };
         const rendered = renderPrompt(snapshot, { id: prompt.id, expected_revision: prompt_revision, variables: example.variables });
         if (!rendered.ok || rendered.data.prompt !== example.effective_prompt) throw new Error(`示例 ${example.id} 的实际提示词与对应模板/变量不符`);
       }
@@ -107,10 +122,10 @@ export async function buildCatalog(options: BuildOptions): Promise<Catalog> {
       throw new Error(`${path.relative(options.contentDir, filename)}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
     }
   }
-  for (const prompt of records) {
+  for (const prompt of [...records, ...archives]) {
     for (const id of prompt.related_ids) if (!records.some(item => item.id === id)) throw new Error(`${prompt.id}: 关联条目未公开或不存在: ${id}`);
   }
-  const payload = { schema_version: '1' as const, site_url: site.origin, base_path: basePath, taxonomy, prompts: records.sort((a, b) => a.id.localeCompare(b.id, 'en')) };
+  const payload = { schema_version: '1' as const, site_url: site.origin, base_path: basePath, taxonomy, prompts: records.sort((a, b) => a.id.localeCompare(b.id, 'en')), archives: archives.sort((a, b) => a.id.localeCompare(b.id, 'en')) };
   return catalogSchema.parse({ ...payload, catalog_revision: hash(canonicalJson(payload)) });
 }
 
@@ -118,5 +133,14 @@ export async function writeCatalog(catalog: Catalog, projectRoot: string) {
   const json = `${JSON.stringify(catalog, null, 2)}\n`;
   await mkdir(path.join(projectRoot, 'generated'), { recursive: true });
   await writeFile(path.join(projectRoot, 'generated/catalog.json'), json, 'utf8');
-  await writeFile(path.join(projectRoot, 'public/catalog.json'), json, 'utf8');
+  await writeFile(path.join(projectRoot, 'public/catalog.json'), `${JSON.stringify(createSearchCatalog(catalog))}\n`, 'utf8');
+  const detailDir = path.join(projectRoot, 'public/data/prompts');
+  await mkdir(detailDir, { recursive: true });
+  // Clear only this generator's old JSON records, so retired bodies cannot survive a rebuild.
+  for (const filename of await readdir(detailDir)) {
+    if (/^[a-z][a-z0-9-]*\.json$/.test(filename)) await unlink(path.join(detailDir, filename));
+  }
+  for (const prompt of catalog.prompts) {
+    await writeFile(path.join(detailDir, `${prompt.id}.json`), `${JSON.stringify({ catalog_revision: catalog.catalog_revision, prompt })}\n`, 'utf8');
+  }
 }
