@@ -6,7 +6,8 @@ import { catalogSchema } from '../src/lib/schema.ts';
 
 export const projectRoot = path.resolve(import.meta.dirname, '..');
 export const catalog = catalogSchema.parse(JSON.parse(await readFile(path.join(projectRoot, 'generated/catalog.json'), 'utf8')));
-export const prompt = catalog.prompts[0]!;
+export const prompt = catalog.prompts.find(item => item.id === 'summer-anime-illustrator')!;
+export const singleCatalog = { ...catalog, prompts: [prompt] };
 
 export async function fixture() {
   const directory = await mkdtemp(path.join(tmpdir(), 'anime-prompt-test-'));
@@ -26,7 +27,7 @@ export async function fixture() {
     async cleanup() {
       const absolute = path.resolve(directory);
       if (path.dirname(absolute) !== path.resolve(tmpdir()) || !path.basename(absolute).startsWith('anime-prompt-test-')) throw new Error('Unexpected test cleanup path');
-      await rm(absolute, { recursive: true, force: true });
+      await rm(absolute, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
     },
   };
 }

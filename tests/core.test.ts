@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { getPrompt, renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
-import { catalog, prompt } from './helpers.ts';
+import { singleCatalog as catalog, prompt } from './helpers.ts';
 
 const renderInput = { id: prompt.id, expected_revision: prompt.prompt_revision, variables: {} };
 

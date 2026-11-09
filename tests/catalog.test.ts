@@ -4,7 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 import { buildCatalog, canonicalJson, writeCatalog } from '../src/content/build.ts';
-import { getPrompt, renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
+import { createSearchCatalog, getPrompt, renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
 import { catalog, prompt, fixture } from './helpers.ts';
 
 test('the authored example builds deterministically and exactly reproduces its recorded prompt', async t => {
@@ -13,26 +13,35 @@ test('the authored example builds deterministically and exactly reproduces its r
   const second = await buildCatalog(files);
   assert.deepEqual(first, second);
   assert.deepEqual(first, catalog);
-  assert.equal(first.prompts.length, 1);
-  const rendered = renderPrompt(first, { id: prompt.id, expected_revision: prompt.prompt_revision, variables: {} });
-  assert.equal(rendered.ok, true);
-  if (!rendered.ok) return;
-  assert.equal(rendered.data.prompt, prompt.examples[0]!.effective_prompt);
-  assert.equal(prompt.examples[0]!.model, null);
-  assert.deepEqual(prompt.examples[0]!.parameters, {});
-  assert.deepEqual(prompt.model_compatibility, []);
+  assert.equal(first.prompts.length, 6);
+  assert.ok(new Set(first.prompts.flatMap(item => item.use_cases)).size >= 4);
+  assert.ok(first.prompts.some(item => item.use_cases.includes('character')));
+  assert.ok(first.prompts.some(item => item.use_cases.includes('scenery')));
+  for (const item of first.prompts) {
+    const rendered = renderPrompt(first, { id: item.id, expected_revision: item.prompt_revision, variables: {} });
+    assert.ok(rendered.ok);
+    assert.equal(rendered.data.prompt, item.examples[0]!.effective_prompt);
+    assert.equal(item.examples[0]!.model, null);
+    assert.deepEqual(item.model_compatibility, []);
+  }
+  const sticker = first.prompts.find(item => item.id === 'shiba-reaction-stickers')!;
+  const metadata = await sharp(await readFile(path.join(files.publicDir, new URL(sticker.examples[0]!.image).pathname))).metadata();
+  assert.equal(metadata.hasAlpha, true);
   await writeCatalog(first, files.directory);
-  assert.equal(await readFile(path.join(files.directory, 'generated/catalog.json'), 'utf8'), await readFile(path.join(files.publicDir, 'catalog.json'), 'utf8'));
+  assert.deepEqual(JSON.parse(await readFile(path.join(files.publicDir, 'catalog.json'), 'utf8')), createSearchCatalog(first));
   assert.equal(canonicalJson({ b: 2, a: { y: 1, x: 3 } }), canonicalJson({ a: { x: 3, y: 1 }, b: 2 }));
 });
 
 test('drafts and archived records never enter public content or tools', async t => {
   const files = await fixture(); t.after(files.cleanup);
   for (const status of ['draft', 'archived']) {
-    await files.edit((data, body) => ({ data: { ...data, id: `private-${status}`, status, title: 'SECRET-UNPUBLISHED', examples: [] }, body }), `${status}.md`);
+    await files.edit((data) => ({ data: { ...data, id: `private-${status}`, status, title: status === 'archived' ? '已归档测试条目' : 'SECRET-UNPUBLISHED', examples: [], variables: {}, related_ids: [prompt.id] }, body: 'SECRET-UNPUBLISHED-BODY' }), `${status}.md`);
   }
   const built = await buildCatalog(files);
-  assert.equal(built.prompts.length, 1);
+  assert.equal(built.prompts.length, 6);
+  assert.equal(built.archives.length, 1);
+  assert.equal(built.archives[0]!.status, 'archived');
+  assert.deepEqual(built.archives[0]!.related_ids, [prompt.id]);
   assert.ok(!JSON.stringify(built).includes('SECRET-UNPUBLISHED'));
   const search = searchPrompts(built, { query: 'SECRET-UNPUBLISHED' });
   assert.ok(search.ok); assert.deepEqual(search.data.items, []);
@@ -48,21 +57,23 @@ test('content and image changes produce a new revision while historical generati
   const files = await fixture(); t.after(files.cleanup);
   await files.edit((data, body) => ({ data: { ...data, template_version: '2' }, body: `${body}\nA new authored direction.` }));
   const changedText = await buildCatalog(files);
-  assert.notEqual(changedText.prompts[0]!.prompt_revision, prompt.prompt_revision);
+  const changed = changedText.prompts.find(item => item.id === prompt.id)!;
+  assert.notEqual(changed.prompt_revision, prompt.prompt_revision);
   assert.notEqual(changedText.catalog_revision, catalog.catalog_revision);
-  assert.equal(changedText.prompts[0]!.examples[0]!.effective_prompt, prompt.examples[0]!.effective_prompt);
+  assert.equal(changed.examples[0]!.effective_prompt, prompt.examples[0]!.effective_prompt);
   const imagePath = path.join(files.publicDir, 'images/summer-anime-illustrator.webp');
   const bytes = await sharp(await readFile(imagePath)).webp({ quality: 80 }).toBuffer();
   await writeFile(imagePath, bytes);
   const changedImage = await buildCatalog(files);
-  assert.notEqual(changedImage.prompts[0]!.prompt_revision, changedText.prompts[0]!.prompt_revision);
+  assert.notEqual(changedImage.prompts.find(item => item.id === prompt.id)!.prompt_revision, changed.prompt_revision);
 });
 
 test('base-path builds use matching public image and detail URLs', async t => {
   const files = await fixture(); t.after(files.cleanup);
   const built = await buildCatalog({ ...files, siteUrl: 'https://example.com', basePath: '/anime-prompts/' });
-  assert.equal(built.prompts[0]!.url, 'https://example.com/anime-prompts/prompts/summer-anime-illustrator/');
-  assert.equal(built.prompts[0]!.examples[0]!.image, 'https://example.com/anime-prompts/images/summer-anime-illustrator.webp');
+  const entry = built.prompts.find(item => item.id === prompt.id)!;
+  assert.equal(entry.url, 'https://example.com/anime-prompts/prompts/summer-anime-illustrator/');
+  assert.equal(entry.examples[0]!.image, 'https://example.com/anime-prompts/images/summer-anime-illustrator.webp');
   await assert.rejects(buildCatalog({ ...files, siteUrl: 'https://example.com/nested/' }), /SITE_URL/);
 });
 
@@ -92,4 +103,47 @@ test('build rejects an undecodable image', async t => {
   const files = await fixture(); t.after(files.cleanup);
   await writeFile(path.join(files.publicDir, 'images/summer-anime-illustrator.webp'), 'not an image');
   await assert.rejects(buildCatalog(files), /unsupported image format/);
+});
+
+test('a newly authored use case and alias enter the public index without a tool or UI code change', async t => {
+  const files = await fixture(); t.after(files.cleanup);
+  const filename = path.join(files.contentDir, 'taxonomy.json');
+  const taxonomy = JSON.parse(await readFile(filename, 'utf8'));
+  taxonomy.use_cases.push({ id: 'book-cover', label: '书封', aliases: ['book cover', '封面设计'] });
+  await writeFile(filename, JSON.stringify(taxonomy));
+  await files.edit((data, body) => ({ data: { ...data, use_cases: ['book-cover'] }, body }));
+  const built = await buildCatalog(files);
+  for (const source of [built, createSearchCatalog(built)]) {
+    const found = searchPrompts(source, { query: '封面设计', use_cases: ['book-cover'] });
+    assert.ok(found.ok); assert.deepEqual(found.data.items.map(item => item.id), [prompt.id]);
+    assert.ok(found.data.facets.use_cases.some(term => term.id === 'book-cover'));
+  }
+});
+
+test('archiving removes previously generated detail bodies and preserves only a stable archive notice', async t => {
+  const files = await fixture(); t.after(files.cleanup);
+  await writeCatalog(await buildCatalog(files), files.directory);
+  await files.edit((data, body) => ({ data: { ...data, status: 'archived', related_ids: ['seaside-watercolor-station'], archive_note: '测试归档说明' }, body }));
+  const built = await buildCatalog(files);
+  await writeCatalog(built, files.directory);
+  await assert.rejects(readFile(path.join(files.publicDir, 'data/prompts', `${prompt.id}.json`)), { code: 'ENOENT' });
+  const index = await readFile(path.join(files.publicDir, 'catalog.json'), 'utf8');
+  assert.ok(index.includes('测试归档说明')); assert.ok(!index.includes(prompt.template));
+  assert.deepEqual(built.archives[0]!.related_ids, ['seaside-watercolor-station']);
+});
+
+test('build rejects ambiguous aliases, unknown models, invalid dimensions and archived replacement references', async t => {
+  const files = await fixture(); t.after(files.cleanup);
+  const taxonomyPath = path.join(files.contentDir, 'taxonomy.json');
+  const taxonomy = JSON.parse(await readFile(taxonomyPath, 'utf8'));
+  taxonomy.models = [{ id: 'test-model', label: '测试模型', aliases: ['MODEL ALIAS'] }, { id: 'other-model', label: '其他模型', aliases: ['model alias'] }];
+  await writeFile(taxonomyPath, JSON.stringify(taxonomy));
+  await assert.rejects(buildCatalog(files), /别名冲突/);
+  taxonomy.models = []; await writeFile(taxonomyPath, JSON.stringify(taxonomy));
+  await files.edit((data, body) => ({ data: { ...data, model_compatibility: [{ model: 'unlisted', status: 'declared', note: '测试用' }] }, body }));
+  await assert.rejects(buildCatalog(files), /未知词表引用 models/);
+  await files.edit((data, body) => ({ data: { ...data, model_compatibility: [], examples: [{ ...data.examples[0], width: 1 }] }, body }));
+  await assert.rejects(buildCatalog(files), /图片尺寸不符/);
+  await files.edit((data, body) => ({ data: { ...data, status: 'archived', related_ids: ['does-not-exist'] }, body }));
+  await assert.rejects(buildCatalog(files), /关联条目/);
 });

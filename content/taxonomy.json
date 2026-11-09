@@ -1,9 +1,20 @@
 {
   "use_cases": [
-    { "id": "illustration", "label": "插画", "aliases": ["illustration", "人物插画", "key visual"] },
-    { "id": "wallpaper", "label": "壁纸", "aliases": ["wallpaper", "桌面背景", "横幅", "banner"] }
+    { "id": "avatar", "label": "头像", "aliases": ["avatar", "profile picture", "头像设计"] },
+    { "id": "character", "label": "角色立绘", "aliases": ["character", "立绘", "角色设计", "character sheet"] },
+    { "id": "scenery", "label": "场景", "aliases": ["scenery", "background", "背景", "环境", "风景"] },
+    { "id": "wallpaper", "label": "壁纸", "aliases": ["wallpaper", "桌面背景", "横幅", "banner"] },
+    { "id": "comic", "label": "漫画", "aliases": ["comic", "manga", "四格", "四格漫画"] },
+    { "id": "meme", "label": "表情包", "aliases": ["meme", "reaction", "梗图", "反应图"] },
+    { "id": "sticker", "label": "贴纸", "aliases": ["sticker", "sticker sheet", "贴图"] },
+    { "id": "illustration", "label": "插画", "aliases": ["illustration", "人物插画", "key visual"] }
   ],
   "styles": [
-    { "id": "anime-key-visual", "label": "动画主视觉", "aliases": ["anime", "二次元", "日系", "动漫"] }
-  ]
+    { "id": "anime-key-visual", "label": "动画主视觉", "aliases": ["anime", "二次元", "日系", "动漫"] },
+    { "id": "watercolor", "label": "清透水彩", "aliases": ["watercolor", "水彩", "手绘", "水彩画"] },
+    { "id": "retro-cel", "label": "复古赛璐璐", "aliases": ["retro cel", "赛璐璐", "复古", "cel animation"] },
+    { "id": "manga-ink", "label": "黑白漫画", "aliases": ["manga ink", "黑白", "网点", "墨线"] },
+    { "id": "chibi", "label": "软萌 Q 版", "aliases": ["chibi", "Q版", "Q 版", "软萌"] }
+  ],
+  "models": []
 }

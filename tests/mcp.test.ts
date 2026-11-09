@@ -5,7 +5,7 @@ import { get as httpGet } from 'node:http';
 import { Client, INVALID_PARAMS, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { AjvJsonSchemaValidator } from '@modelcontextprotocol/client/validators/ajv';
 import { createMcpHttpServer } from '../src/server/mcp.ts';
-import { getPrompt, renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
+import { createSearchCatalog, getPrompt, renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
 import {
   failureSchema, getInputSchema, getResultSchema, renderInputSchema, renderResultSchema,
   searchInputSchema, searchResultSchema,
@@ -22,6 +22,34 @@ async function start() {
 }
 
 const validator = new AjvJsonSchemaValidator();
+
+test('multiword match reasons reflect real fields, deduplicate sources and agree across Catalog, search index and modern/legacy HTTP MCP', async t => {
+  const app = await start(); t.after(() => app.close());
+  const index = createSearchCatalog(catalog);
+  const cases = [
+    { query: 'no logo', ids: ['mint-watercolor-avatar', 'seaside-watercolor-station', 'shiba-reaction-stickers', 'sleepy-cat-four-panel', 'stargazer-character-sheet'], reasons: ['提示词正文关键词匹配'] },
+    { query: 'no logo watermark ui delicate pencil linework translucent', ids: ['mint-watercolor-avatar'], reasons: ['提示词正文关键词匹配'] },
+    { query: 'avatar 薄荷 no logo', ids: ['mint-watercolor-avatar'], reasons: ['用途、画风或模型词表匹配', '名称、关键词或简介匹配', '提示词正文关键词匹配'] },
+  ];
+  for (const mode of ['modern', 'legacy'] as const) {
+    const client = new Client({ name: `${mode}-match-reasons-test`, version: '1.0.0' }, { versionNegotiation: { mode: mode === 'modern' ? { pin: '2026-07-28' } : 'legacy' } });
+    t.after(() => client.close());
+    await client.connect(new StreamableHTTPClientTransport(new URL(`${app.origin}/mcp`)));
+    const listing = await client.listTools();
+    const schema = listing.tools.find(tool => tool.name === 'search_prompts')!.outputSchema!;
+    for (const { query, ids, reasons } of cases) {
+      const full = searchPrompts(catalog, { query }); assert.ok(full.ok);
+      assert.deepEqual(full.data.items.map(item => item.id), ids);
+      for (const item of full.data.items) assert.deepEqual(item.match_reasons, reasons);
+      assert.deepEqual(searchPrompts(index, { query }), full);
+      const response = await client.callTool({ name: 'search_prompts', arguments: { query } });
+      assert.equal(response.isError, false);
+      const checked = validator.getValidator(schema)(response.structuredContent); assert.ok(checked.valid, checked.errorMessage);
+      const structured = response.structuredContent as { result?: unknown };
+      assert.deepEqual(searchResultSchema.parse(structured.result ?? structured), full);
+    }
+  }
+});
 
 test('real Streamable HTTP client discovers typed tools and calls search → get → render against the gallery snapshot', async t => {
   const app = await start();
@@ -46,10 +74,10 @@ test('real Streamable HTTP client discovers typed tools and calls search → get
     assert.deepEqual(JSON.parse(text.text), response.structuredContent);
     return response;
   }
-  const searchResponse = await call('search_prompts', { query: '壁纸' });
+  const searchResponse = await call('search_prompts', { query: '晴空' });
   const found = searchResultSchema.parse(searchResponse.structuredContent);
   assert.ok(found.ok); assert.equal(searchResponse.isError, false);
-  assert.deepEqual(found, searchPrompts(catalog, { query: '壁纸' }));
+  assert.deepEqual(found, searchPrompts(catalog, { query: '晴空' }));
   const item = found.data.items[0]!;
   assert.equal(item.id, prompt.id); assert.equal(item.prompt_revision, prompt.prompt_revision);
 
@@ -140,11 +168,13 @@ for (const mode of ['modern', 'legacy'] as const) {
       ['search_prompts', { query: 123 }],
       ['search_prompts', { limit: 21 }],
       ['search_prompts', { extra: true }],
+      ['search_prompts', { model: '　 ' }],
       ['get_prompt', {}],
       ['get_prompt', { id: prompt.id, include_examples: 'true' }],
       ['render_prompt', { id: prompt.id, variables: {} }],
       ['render_prompt', { ...renderBase, variables: { 'bad-variable-name': 'x' } }],
       ['render_prompt', { ...renderBase, variables: { subject: 123 } }],
+      ['render_prompt', { ...renderBase, model: '　 ' }],
       ['render_prompt', { ...renderBase, variables: { subject: '😀'.repeat(2001) } }],
       ['render_prompt', { ...renderBase, variables: Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`v${i}`, 'x'])) }],
     ];

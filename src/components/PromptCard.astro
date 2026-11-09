@@ -1,0 +1,24 @@
+---
+import { searchCatalog, localPath } from '../lib/site.ts';
+import type { SearchResult } from '../lib/schema.ts';
+type Item = Extract<SearchResult, { ok: true }>['data']['items'][number];
+interface Props { item: Item; }
+const { item } = Astro.props;
+const label = (id: string) => [...searchCatalog.taxonomy.use_cases, ...searchCatalog.taxonomy.styles].find(term => term.id === id)?.label ?? id;
+const status = item.model_compatibility.some(model => model.status === 'verified') ? '有已验证模型 · 详见适用条件' : '具体模型兼容性未知';
+---
+<article class="card prompt-card" data-prompt-id={item.id} data-prompt-revision={item.prompt_revision}>
+  <a class="card-art-link" href={localPath(item.url)} aria-label={`查看${item.title}的提示词`}>
+    <img src={localPath(item.cover.thumbnail)} width={item.cover.width} height={item.cover.height} alt={item.cover.alt} loading="lazy" decoding="async" />
+    <span class="art-label badge">✧ 真实生成示例</span><span class="art-arrow" aria-hidden="true">↗</span>
+  </a>
+  <div class="card-body">
+    <div class="card-heading"><h3><a href={localPath(item.url)}>{item.title}</a></h3><span class="language-label">{item.language.toUpperCase()}</span></div>
+    <p class="card-summary">{item.summary}</p>
+    <div class="tag-row">{item.use_cases.map(id => <span class="badge badge-soft">{label(id)}</span>)}{item.styles.map(id => <span class="badge style-badge">{label(id)}</span>)}</div>
+    <p class="model-note">{status}</p>
+    <div class="card-actions"><button class="btn btn-primary btn-sm card-copy" type="button" aria-label={`复制${item.title}的模板原文`}>复制原文</button><a href={localPath(item.url)} class="card-text-link">填写与详情 <span aria-hidden="true">→</span></a></div>
+    <span class="copy-status" role="status" aria-live="polite"></span>
+    <label class="card-copy-fallback" hidden>模板原文（手动复制）<textarea class="textarea prompt-text" rows="5" readonly></textarea></label>
+  </div>
+</article>

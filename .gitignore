@@ -3,6 +3,7 @@ dist/
 .astro/
 generated/
 public/catalog.json
+public/data/prompts/
 .env
 .env.*
 !.env.example
