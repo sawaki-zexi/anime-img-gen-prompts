@@ -2,7 +2,9 @@
 
 看图片，找到动漫风格提示词，填入自己的主角，再复制到图像生成工具。
 
-目前收录六条独立生成的真实样例，覆盖头像、角色立绘、场景、壁纸、漫画、插画、表情包与贴纸。每条的原始提示词、实际生成图、变量与已知生成条件共同保存在仓库中；未知的底层模型、版本和种子如实保留为未知。插件安装和公开托管分别由 [Issue #4](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/4)、[Issue #5](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/5) 推进。
+目前收录六条独立生成的真实样例，覆盖头像、角色立绘、场景、壁纸、漫画、插画、表情包与贴纸。每条的原始提示词、实际生成图、变量与已知生成条件共同保存在仓库中；未知的底层模型、版本和种子如实保留为未知。插件已有可复现的测试包与隔离安装流程，当前标记本地实验；公开托管与正式分发由 [Issue #5](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/5) 推进。
+
+画廊的 `/install/` 是插件接入入口。普通用户目前可直接复制提示词；尚无生产服务与公开安装包，不需先安装本地运行时。真实客户端支持范围、维护者打包和两个项目评测见 [插件安装说明](docs/plugin-installation.md) 与 [实际验证记录](docs/validation/issue-4-plugin.md)。
 
 ## 本地运行
 
@@ -31,6 +33,10 @@ npm run dev:mcp
 | --- | --- |
 | `npm run lockfile:check` | 在安装前检查锁文件中的版本、来源和完整性记录，正确保留 workspace/link 与 bundled 例外 |
 | `npm run content:build` | 校验 Markdown、元信息、词表、变量、图片和生成记录，生成共享快照 |
+| `npm run plugin:build -- --mcp-url … --gallery-url … --out …` | 用明确地址生成可移植插件 ZIP、Codex 兼容声明与 marketplace；发布模式验证真实 HTTPS 服务，测试须显式 `--evaluation` |
+| `npm run plugin:validate -- --root …` | 离线验证包 Schema、引用、连接一致性与隐式发现策略 |
+| `npm run plugin:probe -- --package … --state …` | 独立配置中实际安装并验证两项目 Skill 发现，不使用用户认证 |
+| `npm run plugin:eval -- --state … --prepare/--run` | 准备一次隔离安装，随后按真实工具轨迹评测新会话；模型运行需显式 `--run` |
 | `npm run dev` | 先构建内容，再启动画廊开发服务器 |
 | `npm run dev:mcp` | 先构建内容，再启动 MCP |
 | `npm run build` | 构建内容与静态站点到 `dist/` |
@@ -72,7 +78,7 @@ npm run build
 
 首页的用途与画风可多选，模型名称可填写；地址会保存关键词、各筛选维度、每页数量与分页游标，刷新、分享和浏览器前进后退均可恢复。卡片“复制原文”按需读取对应模板；详情提供默认值、实时变量校验、原文与填写后复制。若有独立负面模板，正向与负面分别展示和复制。剪贴板受限时会选择文本，供用户手动复制。
 
-实现使用官方 TypeScript SDK v2，支持 2026-07-28 协议与 SDK 的 2025 协议兼容路径。v2 客户端可设置 `versionNegotiation: { mode: 'auto' }`。在旧协议路径上，SDK 会把联合输出 Schema 与结构化结果投影到 `{ result: ... }` 包装中；文本内容仍提供业务结果 JSON。自动化同时验证了两条传输路径。普通 MCP 连接不等于已安装能跨项目自动发现的任务 Skill；插件接入会在后续任务提供。
+实现使用官方 TypeScript SDK v2，支持 2026-07-28 协议与 SDK 的 2025 协议兼容路径。v2 客户端可设置 `versionNegotiation: { mode: 'auto' }`。在旧协议路径上，SDK 会把联合输出 Schema 与结构化结果投影到 `{ result: ... }` 包装中；文本内容仍提供业务结果 JSON。自动化同时验证了两条传输路径。普通 MCP 连接不等于已安装能跨项目自动发现的任务 Skill；可安装插件的测试路径与实际支持状态见上方安装说明。
 
 ## 内容与结构
 

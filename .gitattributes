@@ -1,0 +1,3 @@
+# Keep plugin package inputs identical across Windows and Unix checkouts.
+plugin/** text eol=lf
+public/favicon.svg text eol=lf
