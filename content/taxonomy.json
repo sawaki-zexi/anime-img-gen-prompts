@@ -1,0 +1,9 @@
+{
+  "use_cases": [
+    { "id": "illustration", "label": "插画", "aliases": ["illustration", "人物插画", "key visual"] },
+    { "id": "wallpaper", "label": "壁纸", "aliases": ["wallpaper", "桌面背景", "横幅", "banner"] }
+  ],
+  "styles": [
+    { "id": "anime-key-visual", "label": "动画主视觉", "aliases": ["anime", "二次元", "日系", "动漫"] }
+  ]
+}

@@ -1,0 +1,98 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { catalog, localPath, jsonForScript } from '../lib/site.ts';
+import { searchPrompts } from '../lib/catalog.ts';
+const result = searchPrompts(catalog, {});
+if (!result.ok) throw new Error(result.error.message);
+const featured = catalog.prompts[0]!;
+const hero = featured.examples[0]!;
+const useCaseLabel = (id: string) => catalog.taxonomy.use_cases.find(term => term.id === id)?.label ?? id;
+---
+<Layout>
+  <section class="gallery-hero" aria-labelledby="hero-title">
+    <img class="hero-art" src={localPath(hero.image)} width={hero.width} height={hero.height} alt="" fetchpriority="high" />
+    <div class="hero-shade"></div>
+    <div class="hero-inner">
+      <span class="hero-kicker">✧ A LITTLE PROMPT, A NEW WORLD</span>
+      <h1 id="hero-title">把脑海里的画面，<br />变成下一张心动。</h1>
+      <p>寻找喜欢的动漫画风，<br class="mobile-break" />带走可以继续创作的提示词。</p>
+      <a class="btn hero-button" href={localPath(featured.url)}>从这片晴空开始 <span aria-hidden="true">↗</span></a>
+    </div>
+    <span class="hero-credit">本库真实生成示例 · 画师的夏日晴空</span>
+  </section>
+  <div class="page-shell gallery-shell">
+    <form class="search-surface" role="search" id="search-form">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+      <label class="sr-only" for="prompt-query">搜索提示词</label>
+      <input class="input search-input" id="prompt-query" name="q" type="search" placeholder="寻找画面、用途或灵感，例如：夏日、壁纸…" maxlength="512" autocomplete="off" />
+      <button class="btn btn-primary" type="submit">寻找灵感 <span aria-hidden="true">↗</span></button>
+    </form>
+    <section id="gallery" class="gallery-section" aria-labelledby="gallery-title">
+      <div class="section-heading">
+        <div><span class="eyebrow">THE FIRST PAGE</span><h2 id="gallery-title">灵感，从这里展开<span aria-hidden="true"> ✦</span></h2><p>每张图，都有一份可以读懂、填写与复制的提示词。</p></div>
+        <span class="badge count-badge" id="result-count" aria-live="polite">{result.data.items.length} 条公开模板</span>
+      </div>
+      <p class="search-error" id="search-error" role="alert" hidden></p>
+      <div class="gallery-layout">
+        <div id="prompt-grid" class="prompt-grid">
+          {result.data.items.map(item => (
+            <article class="card prompt-card" data-prompt-id={item.id} data-prompt-revision={item.prompt_revision}>
+              <a class="card-art-link" href={localPath(item.url)} aria-label={`查看${item.title}的提示词`}>
+                <img src={localPath(item.cover.thumbnail)} width="900" height="300" alt={item.cover.alt} loading="lazy" />
+                <span class="art-label badge">✧ 真实生成示例</span>
+                <span class="art-arrow" aria-hidden="true">↗</span>
+              </a>
+              <div class="card-body">
+                <div class="card-heading"><h3><a href={localPath(item.url)}>{item.title}</a></h3><span class="language-label">EN</span></div>
+                <p class="card-summary">{item.summary}</p>
+                <div class="card-bottom"><div class="tag-row">{item.use_cases.map(id => <span class="badge badge-soft">{useCaseLabel(id)}</span>)}<span class="badge style-badge">动画主视觉</span></div><a href={localPath(item.url)} class="card-text-link">展开提示词 <span aria-hidden="true">→</span></a></div>
+              </div>
+            </article>
+          ))}
+          <div class="card empty-state" id="empty-state" hidden>
+            <span class="empty-star" aria-hidden="true">✧</span><h3>这页灵感还没写到这里</h3><p>试试“晴空”“插画”或“壁纸”，也可以看看全部模板。</p><button class="btn btn-primary btn-sm" id="clear-search" type="button">查看全部模板</button>
+          </div>
+        </div>
+        <aside class="card inspiration-note">
+          <span class="note-kicker">MAKE IT YOURS</span><h3>喜欢这张画？<br />把灵感接着画下去。</h3>
+          <ol><li><span>01</span><div><strong>先看看示例</strong><p>找到心动的氛围与构图。</p></div></li><li><span>02</span><div><strong>填入你的主角</strong><p>保留画风，让想象有自己的样子。</p></div></li><li><span>03</span><div><strong>复制，继续创作</strong><p>交给你习惯的图像生成工具。</p></div></li></ol>
+          <div class="note-flower" aria-hidden="true">✿</div>
+        </aside>
+      </div>
+    </section>
+    <p class="gallery-caption">一份正在生长的动漫提示词收藏。先从一片晴空开始。</p>
+  </div>
+  <script id="catalog-data" type="application/json" is:inline set:html={jsonForScript(catalog)} />
+  <script>
+    import { animate } from 'motion/mini';
+    import { searchPrompts } from '../lib/catalog.ts';
+    import { catalogSchema } from '../lib/schema.ts';
+    const catalog = catalogSchema.parse(JSON.parse(document.querySelector('#catalog-data')!.textContent!));
+    const form = document.querySelector<HTMLFormElement>('#search-form')!;
+    const field = document.querySelector<HTMLInputElement>('#prompt-query')!;
+    const count = document.querySelector('#result-count')!;
+    const error = document.querySelector<HTMLElement>('#search-error')!;
+    const cards = [...document.querySelectorAll<HTMLElement>('[data-prompt-id]')];
+    function search(updateUrl = true) {
+      const found = searchPrompts(catalog, { query: field.value });
+      error.hidden = found.ok;
+      if (!found.ok) { error.textContent = found.error.message; return; }
+      const ids = new Set(found.data.items.map(item => item.id));
+      cards.forEach(card => { card.hidden = !ids.has(card.dataset.promptId!); });
+      document.querySelector<HTMLElement>('#empty-state')!.hidden = ids.size > 0;
+      count.textContent = `${ids.size} 条公开模板`;
+      if (updateUrl) {
+        const url = new URL(location.href);
+        if (field.value) url.searchParams.set('q', field.value); else url.searchParams.delete('q');
+        history.replaceState(null, '', url);
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) animate('#prompt-grid', { opacity: [0.55, 1], transform: ['translateY(5px)', 'translateY(0)'] }, { duration: 0.18 });
+      }
+    }
+    field.value = new URL(location.href).searchParams.get('q') ?? '';
+    search(false);
+    form.addEventListener('submit', event => { event.preventDefault(); search(); });
+    field.addEventListener('input', () => search(false));
+    document.querySelector('#clear-search')!.addEventListener('click', () => { field.value = ''; search(); field.focus(); });
+    window.addEventListener('popstate', () => { field.value = new URL(location.href).searchParams.get('q') ?? ''; search(false); });
+  </script>
+</Layout>

@@ -1,0 +1,65 @@
+---
+import '../styles/global.css';
+import { catalog, sitePath } from '../lib/site.ts';
+interface Props { title?: string; description?: string; }
+const { title = 'Anime Prompt Atelier · 动漫灵感工坊', description = '看见画面，找到提示词。收集有真实图片与生成记录的动漫风格创作模板。' } = Astro.props;
+---
+<!doctype html>
+<html lang="zh-CN" data-theme="anime-light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="catalog-revision" content={catalog.catalog_revision} />
+    <link rel="icon" href={sitePath('favicon.svg')} type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+    <title>{title}</title>
+    <script is:inline>
+      try {
+        const stored = localStorage.getItem('anime-theme');
+        document.documentElement.dataset.theme = stored || (matchMedia('(prefers-color-scheme: dark)').matches ? 'anime-dark' : 'anime-light');
+      } catch { /* System theme remains available when storage is blocked. */ }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到正文</a>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href={sitePath()} aria-label="动漫灵感工坊首页">
+          <span class="brand-mark" aria-hidden="true">✦</span>
+          <span><span class="brand-name">Anime <em>Atelier</em></span><span class="brand-sub">动漫灵感工坊</span></span>
+        </a>
+        <nav aria-label="主导航">
+          <a class="btn btn-ghost btn-sm nav-gallery" href={sitePath('#gallery')}>探索画廊</a>
+          <a class="btn btn-ghost btn-sm" href="https://github.com/sawaki-zexi/anime-img-gen-prompts" target="_blank" rel="noreferrer">GitHub ↗</a>
+          <button class="btn btn-circle btn-ghost btn-sm theme-toggle" type="button" aria-label="切换到深色主题" title="切换明暗主题"><span aria-hidden="true">☾</span></button>
+        </nav>
+      </div>
+    </header>
+    <main id="main"><slot /></main>
+    <footer class="site-footer">
+      <div><span class="footer-star" aria-hidden="true">✦</span> 留一点想象，给下一张画。</div>
+      <div class="footer-meta"><span>{catalog.prompts.length} 条公开模板</span><span title={catalog.catalog_revision}>内容版本 {catalog.catalog_revision.slice(7, 15)}</span><a href={sitePath('catalog.json')}>公开内容数据 ↗</a></div>
+    </footer>
+    <script>
+      import { animate } from 'motion/mini';
+      const button = document.querySelector<HTMLButtonElement>('.theme-toggle')!;
+      function updateThemeLabel() {
+        const dark = document.documentElement.dataset.theme === 'anime-dark';
+        button.setAttribute('aria-label', dark ? '切换到浅色主题' : '切换到深色主题');
+        button.querySelector('span')!.textContent = dark ? '☀' : '☾';
+      }
+      updateThemeLabel();
+      button.addEventListener('click', () => {
+        const theme = document.documentElement.dataset.theme === 'anime-dark' ? 'anime-light' : 'anime-dark';
+        document.documentElement.dataset.theme = theme;
+        try { localStorage.setItem('anime-theme', theme); } catch { /* The toggle still works for this page. */ }
+        updateThemeLabel();
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) animate(button, { rotate: [0, 30, 0] }, { duration: 0.2 });
+      });
+    </script>
+  </body>
+</html>
