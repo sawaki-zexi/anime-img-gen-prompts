@@ -2,11 +2,14 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { test } from 'node:test';
 import { get as httpGet } from 'node:http';
-import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import { Client, INVALID_PARAMS, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { AjvJsonSchemaValidator } from '@modelcontextprotocol/client/validators/ajv';
 import { createMcpHttpServer } from '../src/server/mcp.ts';
 import { getPrompt, renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
-import { getResultSchema, renderResultSchema, searchResultSchema } from '../src/lib/schema.ts';
+import {
+  failureSchema, getInputSchema, getResultSchema, renderInputSchema, renderResultSchema,
+  searchInputSchema, searchResultSchema,
+} from '../src/lib/schema.ts';
 import { catalog, prompt } from './helpers.ts';
 
 async function start() {
@@ -110,6 +113,69 @@ test('legacy MCP HTTP clients receive valid SDK-projected schemas and the same b
   const result = getResultSchema.parse(structured.result ?? structured);
   assert.deepEqual(result, getPrompt(catalog, { id: prompt.id }));
 });
+
+for (const mode of ['modern', 'legacy'] as const) {
+  test(`${mode} HTTP clients receive structured INVALID_INPUT for invalid tool arguments while discovery retains strict schemas`, async t => {
+    const app = await start(); t.after(() => app.close());
+    const client = new Client({ name: `${mode}-input-errors-test`, version: '1.0.0' }, {
+      versionNegotiation: { mode: mode === 'modern' ? { pin: '2026-07-28' } : 'legacy' },
+    });
+    t.after(() => client.close());
+    await client.connect(new StreamableHTTPClientTransport(new URL(`${app.origin}/mcp`)));
+    const { tools } = await client.listTools();
+    const operations = {
+      search_prompts: { schema: searchInputSchema, run: searchPrompts },
+      get_prompt: { schema: getInputSchema, run: getPrompt },
+      render_prompt: { schema: renderInputSchema, run: renderPrompt },
+    };
+    for (const [name, operation] of Object.entries(operations)) {
+      const tool = tools.find(item => item.name === name)!;
+      assert.deepEqual(tool.inputSchema, operation.schema['~standard'].jsonSchema.input({ target: 'draft-2020-12' }));
+      assert.equal(tool.inputSchema.additionalProperties, false);
+    }
+    const renderBase = { id: prompt.id, expected_revision: prompt.prompt_revision, variables: {} };
+    const invalidCases: [keyof typeof operations, Record<string, unknown>][] = [
+      ['search_prompts', { query: 'a'.repeat(257) }],
+      ['search_prompts', { query: '😀'.repeat(257) }],
+      ['search_prompts', { query: 123 }],
+      ['search_prompts', { limit: 21 }],
+      ['search_prompts', { extra: true }],
+      ['get_prompt', {}],
+      ['get_prompt', { id: prompt.id, include_examples: 'true' }],
+      ['render_prompt', { id: prompt.id, variables: {} }],
+      ['render_prompt', { ...renderBase, variables: { 'bad-variable-name': 'x' } }],
+      ['render_prompt', { ...renderBase, variables: { subject: 123 } }],
+      ['render_prompt', { ...renderBase, variables: { subject: '😀'.repeat(2001) } }],
+      ['render_prompt', { ...renderBase, variables: Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`v${i}`, 'x'])) }],
+    ];
+    for (const [name, args] of invalidCases) {
+      const response = await client.callTool({ name, arguments: args });
+      assert.equal(response.isError, true, `${name} must fail`);
+      const tool = tools.find(item => item.name === name)!;
+      const output = validator.getValidator(tool.outputSchema!)(response.structuredContent);
+      assert.ok(output.valid, output.errorMessage);
+      const structured = response.structuredContent as { result?: unknown };
+      const result = failureSchema.parse(mode === 'legacy' ? structured.result ?? structured : structured);
+      assert.equal(result.error.code, 'INVALID_INPUT');
+      assert.equal(result.error.retryable, false);
+      assert.ok(Array.isArray(result.error.details.issues) && result.error.details.issues.length > 0);
+      assert.equal(result.catalog_revision, catalog.catalog_revision);
+      assert.deepEqual(result, operations[name].run(catalog, args));
+      assert.ok(!Object.hasOwn(result, 'data'));
+      const text = response.content.find(block => block.type === 'text');
+      assert.ok(text && text.type === 'text');
+      assert.deepEqual(JSON.parse(text.text), result);
+    }
+    // Unicode length still counts characters rather than UTF-16 code units.
+    const boundary = await client.callTool({ name: 'search_prompts', arguments: { query: '😀'.repeat(256) } });
+    assert.equal(boundary.isError, false);
+    const structured = boundary.structuredContent as { result?: unknown };
+    const result = searchResultSchema.parse(mode === 'legacy' ? structured.result ?? structured : structured);
+    assert.ok(result.ok); assert.deepEqual(result.data.items, []);
+    // Unknown tool names remain SDK protocol errors, not business responses.
+    await assert.rejects(client.callTool({ name: 'missing_tool', arguments: {} }), { code: INVALID_PARAMS });
+  });
+}
 
 test('HTTP runtime rejects oversized bodies and untrusted Host/Origin headers', async t => {
   const app = await start(); t.after(() => app.close());
