@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.astro/
+generated/
+public/catalog.json
+.env
+.env.*
+!.env.example
+*.log
+.worktrees/
