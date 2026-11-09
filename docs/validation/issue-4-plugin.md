@@ -9,7 +9,7 @@
 | CLI 安装 | Windows 10.0.26200 / Codex CLI 0.165.0，专用配置中真实 marketplace add、plugin add、plugin list、缓存检查通过 |
 | 两项目发现 | 一次用户级安装；仓库外的短片笔记、家庭预算项目均发现同一 Skill，`scope=user`、`enabled=true`、无发现错误 |
 | 正文与连接 | app-server `fs/readFile` 的正文哈希与缓存一致；真实 Streamable HTTP 发现 search/get/render 三工具；最终规范化包另做隔离安装与连接复验，通过 |
-| 自动化 | `npm run check` 通过 56 项（52 单元/契约/资源失败回归、1 静态一致性、3 真实 Chrome），类型检查零错误、警告和提示；[PR 检查](https://github.com/sawaki-zexi/anime-img-gen-prompts/pull/8/checks) |
+| 自动化 | `npm run check` 通过 57 项（53 单元/契约/资源失败回归、1 静态一致性、3 真实 Chrome），类型检查零错误、警告和提示；[PR 检查](https://github.com/sawaki-zexi/anime-img-gen-prompts/pull/8/checks) |
 | 页面 | 1280px 桌面、360px 手机、键盘进入/返回、明暗主题持久化通过，无横向溢出或运行时异常 |
 | 宿主限制 | 模型会话中的命令读取 Skill 被自动策略拒绝，返回 `blocked by policy`；app-server 读取成功。未放宽只读权限，客户端仍标实验 |
 | 公开发布 | 桌面端干净安装、生产地址、公开分发、官方目录与真实生图交接属于 [Issue #5](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/5)，本记录不替代这些验收 |

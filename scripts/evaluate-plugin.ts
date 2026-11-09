@@ -20,7 +20,7 @@ const { values } = parseArgs({ options: {
 if (!values.state || values.prepare === values.run) throw new Error('选择 --prepare 或 --run，并提供 --state <仓库外的新隔离目录>；可用 --case <ID> 仅运行一条');
 const state = path.resolve(values.state);
 const relative = path.relative(repositoryRoot, state);
-if (!relative.startsWith('..') && !path.isAbsolute(relative)) throw new Error('模型评测目录必须在内容仓库之外，保证两个项目没有库的副本');
+if (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)) throw new Error('模型评测目录必须在内容仓库之外，保证两个项目没有库的副本');
 const resources = new AsyncDisposableStack();
 
 async function listen(server: Server, port = 0) {

@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import { once } from 'node:events';
-import { copyFile, cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { copyFile, cp, lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { test, type TestContext } from 'node:test';
 import { crc32 } from 'node:zlib';
 import { pathToFileURL } from 'node:url';
+import { promisify } from 'node:util';
 import matter from 'gray-matter';
 import { z } from 'zod';
 import { getPrompt, renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
@@ -197,4 +199,30 @@ test('isolated CLI environment strips desktop tool routing while preserving perm
   assert.equal(isolated.CODEX_APP_TOOLS_PIPE_PATH, undefined); assert.equal(isolated.CODEX_THREAD_ID, undefined);
   assert.equal(isolated.CODEX_PERMISSION_PROFILE, 'read-only'); assert.equal(isolated.CODEX_SANDBOX_NETWORK_DISABLED, '1');
   assert.equal(extra.CODEX_APP_TOOLS_PIPE_PATH, 'parent-pipe');
+});
+
+test('evaluation prepare rejects repository paths including dot-dot-prefixed children before creating state or installing', async t => {
+  const resources = resourcesFor(t), directory = await temporary(resources);
+  const names = [`evaluation-${path.basename(directory)}`, `..evaluation-${path.basename(directory)}`];
+  const children = names.map(name => path.join(repositoryRoot, name));
+  for (const child of children) {
+    await assert.rejects(lstat(child), { code: 'ENOENT' });
+    resources.defer(async () => {
+      const absolute = path.resolve(child);
+      if (path.dirname(absolute) !== repositoryRoot || !names.includes(path.basename(absolute))) throw new Error('Unexpected evaluation regression cleanup path');
+      await rm(absolute, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    });
+  }
+  const entries = (await readdir(repositoryRoot)).sort();
+  const run = promisify(execFile);
+  for (const target of [repositoryRoot, ...children]) {
+    await assert.rejects(run(process.execPath, ['--import', 'tsx', path.join(repositoryRoot, 'scripts/evaluate-plugin.ts'), '--prepare', '--state', target, '--gallery-url', 'http://127.0.0.1:5173/', '--codex', path.join(directory, 'must-not-run-codex')], { cwd: repositoryRoot, windowsHide: true, timeout: 15_000 }), (error: any) => {
+      assert.equal(error.code, 1);
+      assert.ok(error.stderr.includes('模型评测目录必须在内容仓库之外'));
+      assert.equal(error.stdout, '');
+      return true;
+    });
+    for (const child of children) await assert.rejects(lstat(child), { code: 'ENOENT' });
+    assert.deepEqual((await readdir(repositoryRoot)).sort(), entries);
+  }
 });
