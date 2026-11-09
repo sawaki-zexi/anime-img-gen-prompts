@@ -5,7 +5,8 @@ import { test } from 'node:test';
 import { buildCatalog, writeCatalog } from '../src/content/build.ts';
 import { searchPrompts } from '../src/lib/catalog.ts';
 import { readSearchParams } from '../src/lib/search-url.ts';
-import { Browser, runProcess, serve } from './browser-helper.ts';
+import { runProcess } from './browser-helper.ts';
+import { browserTestResources } from './browser-resources.ts';
 import { catalog, fixture, projectRoot, prompt } from './helpers.ts';
 
 const visibleIds = `Array.from(document.querySelectorAll('#prompt-grid [data-prompt-id]'), item => item.dataset.promptId)`;
@@ -21,10 +22,10 @@ async function buildFixtureSite(files: Awaited<ReturnType<typeof fixture>>) {
 }
 
 test('real mobile browser follows keyboard filters, pagination, share URLs, details and clipboard fallbacks', { timeout: 120000 }, async t => {
-  const files = await fixture();
-  const server = await serve(path.join(projectRoot, 'dist'));
-  const browser = await Browser.launch(path.join(files.directory, 'chrome'));
-  t.after(async () => { await browser.close(); await server.close(); await files.cleanup(); });
+  const resources = browserTestResources(t);
+  const files = await resources.fixture();
+  const server = await resources.serve(path.join(projectRoot, 'dist'));
+  const browser = await resources.browser(path.join(files.directory, 'chrome'));
   await browser.viewport(360, true);
   await browser.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }, { name: 'prefers-color-scheme', value: 'light' }] });
   await browser.send('Browser.grantPermissions', { origin: server.origin, permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'] }, false);
@@ -75,7 +76,8 @@ test('real mobile browser follows keyboard filters, pagination, share URLs, deta
 });
 
 test('real browser renders negative prompts, field limits, new taxonomy and archived routes using isolated content fixtures', { timeout: 120000 }, async t => {
-  const files = await fixture();
+  const resources = browserTestResources(t);
+  const files = await resources.fixture();
   await files.edit(data => ({ data: { ...data, id: 'fixture-negative', title: '测试夹具 · 负面模板', template_version: '2', variables: { subject: { label: '测试主体', description: '测试输入', required: true, max_length: 20, default: 'default' }, mood: { label: '测试选项', description: '测试选择', required: false, options: ['calm', 'bright'], default: 'calm', max_length: 20 } }, use_cases: ['book-cover'], negative_template: 'avoid {subject}\nno captions', related_ids: [] }, body: 'A fixture {subject}\nMood {mood}' }), 'fixture-negative.md');
   await files.edit((data, body) => ({ data: { ...data, status: 'archived', related_ids: ['fixture-negative'], archive_note: '仅供自动验收的归档记录' }, body }));
   const taxonomyPath = path.join(files.contentDir, 'taxonomy.json');
@@ -85,9 +87,8 @@ test('real browser renders negative prompts, field limits, new taxonomy and arch
   const built = await buildFixtureSite(files);
   assert.equal(built.prompts.length, 6);
   assert.ok(!built.prompts.some(item => item.id === prompt.id));
-  const server = await serve(path.join(files.directory, 'dist'));
-  const browser = await Browser.launch(path.join(files.directory, 'chrome'));
-  t.after(async () => { await browser.close(); await server.close(); await files.cleanup(); });
+  const server = await resources.serve(path.join(files.directory, 'dist'));
+  const browser = await resources.browser(path.join(files.directory, 'chrome'));
   await browser.viewport(360, true);
   await browser.send('Page.addScriptToEvaluateOnNewDocument', { source: `Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => { throw new Error('denied'); } } })` });
   await browser.navigate(server.origin, `document.querySelector('#result-count')?.textContent.includes('5') && document.querySelector('.hero-art')?.naturalWidth > 0`);
@@ -121,15 +122,15 @@ test('real browser renders negative prompts, field limits, new taxonomy and arch
 });
 
 test('an empty published catalog still builds a usable homepage without a hero record or card template item', { timeout: 120000 }, async t => {
-  const files = await fixture();
+  const resources = browserTestResources(t);
+  const files = await resources.fixture();
   const emptyContent = path.join(files.directory, 'empty-content');
   await mkdir(path.join(emptyContent, 'prompts'), { recursive: true });
   await copyFile(path.join(files.contentDir, 'taxonomy.json'), path.join(emptyContent, 'taxonomy.json'));
   const built = await buildFixtureSite({ ...files, contentDir: emptyContent });
   assert.equal(built.prompts.length, 0);
-  const server = await serve(path.join(files.directory, 'dist'));
-  const browser = await Browser.launch(path.join(files.directory, 'chrome'));
-  t.after(async () => { await browser.close(); await server.close(); await files.cleanup(); });
+  const server = await resources.serve(path.join(files.directory, 'dist'));
+  const browser = await resources.browser(path.join(files.directory, 'chrome'));
   await browser.viewport(360, true);
   await browser.navigate(server.origin, `document.readyState === 'complete' && document.querySelector('#result-count')?.textContent.includes('0') && !document.querySelector('#empty-state')?.hidden`);
   assert.equal(await browser.evaluate(visibleIds).then(items => items.length), 0);
