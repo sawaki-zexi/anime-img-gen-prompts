@@ -1,5 +1,6 @@
 {
-  "request": "issue-5-first-controlled-acceptance",
+  "request": "issue-5-seven-record-release-acceptance",
+  "source_content_count": 7,
   "fixture_count": 1000,
   "concurrency": 20,
   "warmup_seconds": 15,
