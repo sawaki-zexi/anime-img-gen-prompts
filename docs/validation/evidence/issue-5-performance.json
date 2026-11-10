@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "measured_at": "2026-11-10T03:52:59.547Z",
+  "source_revision": "9b53050dd4a98aeadab7978adc534e2c3a048c61",
+  "acceptance": "passed",
+  "environment": {
+    "platform": "linux",
+    "arch": "x64",
+    "kernel": "7.0.0-1019-azure",
+    "node": "v24.22.2",
+    "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+    "visible_logical_cpus": 4,
+    "cpu_max": "200000 100000",
+    "memory_max": "2147483648",
+    "cgroup_cpus": 2,
+    "cgroup_memory_bytes": 2147483648,
+    "controlled_2cpu_2gib": true,
+    "process_peak_rss_bytes": 289714176,
+    "client_and_server": "same Node process and cgroup; both consume the 2 CPU / 2 GiB budget"
+  },
+  "fixture": {
+    "synthetic": true,
+    "published": false,
+    "prompt_count": 1000,
+    "catalog_revision": "sha256:3860701f056c4513c5081893ba4a08a14c5c44d13337fd9f1751eff9081d71f8",
+    "source_catalog_revision": "sha256:4b6686cfc70c5d39bb168182e8d90d6f7f42369fca7c3fc1437fe4b598f3d1a9"
+  },
+  "service_version": "0.1.0",
+  "sdk_versions": {
+    "@modelcontextprotocol/server": "2.4.0",
+    "@modelcontextprotocol/client": "2.4.0",
+    "@modelcontextprotocol/node": "2.1.2"
+  },
+  "protocol": "2026-07-28",
+  "concurrency": 20,
+  "warmup_seconds": 15,
+  "requested_seconds": 300,
+  "actual_seconds": 300.41815803,
+  "limits": {
+    "per_client_requests_per_60s": 1000000,
+    "global_requests_per_60s": 1000000,
+    "request_body_bytes": 131072
+  },
+  "timing_definition": "Server-Timing app: Fetch handler entry after Node has buffered the bounded request body, through host/rate policy, SDK parsing/validation, core search/get/render and response construction; excludes request body transfer, response transfer and client validation. Local end-to-end times are reported separately.",
+  "server": {
+    "samples": 25075,
+    "p50_ms": 0.562,
+    "p95_ms": 33.642,
+    "max_ms": 48.635
+  },
+  "by_tool": {
+    "search_prompts": {
+      "samples": 8368,
+      "p50_ms": 32.86,
+      "p95_ms": 34.865,
+      "max_ms": 48.635
+    },
+    "get_prompt": {
+      "samples": 8355,
+      "p50_ms": 0.558,
+      "p95_ms": 0.662,
+      "max_ms": 2.603
+    },
+    "render_prompt": {
+      "samples": 8352,
+      "p50_ms": 0.43,
+      "p95_ms": 0.541,
+      "max_ms": 2.242
+    }
+  },
+  "local_end_to_end": {
+    "samples": 25075,
+    "p50_ms": 152.22065899998415,
+    "p95_ms": 445.2828500000178,
+    "max_ms": 955.7900640000007
+  },
+  "completed": 25075,
+  "errors_total": 0,
+  "errors": {}
+}

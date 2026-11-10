@@ -15,7 +15,7 @@ function embeddedJson(html: string, id: string): unknown {
   return JSON.parse(match[1]!);
 }
 
-test('all six built details, lazy-copy documents and HTTP MCP share exact templates, examples and revisions', async t => {
+test('all built details, lazy-copy documents and HTTP MCP share exact templates, examples and revisions', async t => {
   const publicIndex = searchCatalogSchema.parse(JSON.parse(await readFile(path.join(projectRoot, 'dist/catalog.json'), 'utf8')));
   const home = await readFile(path.join(projectRoot, 'dist/index.html'), 'utf8');
   const browserHome = searchCatalogSchema.parse(embeddedJson(home, 'catalog-data'));

@@ -13,7 +13,7 @@ test('the authored example builds deterministically and exactly reproduces its r
   const second = await buildCatalog(files);
   assert.deepEqual(first, second);
   assert.deepEqual(first, catalog);
-  assert.equal(first.prompts.length, 6);
+  assert.equal(first.prompts.length, catalog.prompts.length);
   assert.ok(new Set(first.prompts.flatMap(item => item.use_cases)).size >= 4);
   assert.ok(first.prompts.some(item => item.use_cases.includes('character')));
   assert.ok(first.prompts.some(item => item.use_cases.includes('scenery')));
@@ -38,7 +38,7 @@ test('drafts and archived records never enter public content or tools', async t 
     await files.edit((data) => ({ data: { ...data, id: `private-${status}`, status, title: status === 'archived' ? '已归档测试条目' : 'SECRET-UNPUBLISHED', examples: [], variables: {}, related_ids: [prompt.id] }, body: 'SECRET-UNPUBLISHED-BODY' }), `${status}.md`);
   }
   const built = await buildCatalog(files);
-  assert.equal(built.prompts.length, 6);
+  assert.equal(built.prompts.length, catalog.prompts.length);
   assert.equal(built.archives.length, 1);
   assert.equal(built.archives[0]!.status, 'archived');
   assert.deepEqual(built.archives[0]!.related_ids, [prompt.id]);

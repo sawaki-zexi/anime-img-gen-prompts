@@ -12,13 +12,26 @@ import {
 } from '../src/lib/schema.ts';
 import { catalog, prompt } from './helpers.ts';
 
+// https://fetch.spec.whatwg.org/#port-blocking — an OS-assigned port can still be forbidden by Fetch.
+const fetchBlockedPorts = new Set([0, 1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95, 101, 102, 103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137, 139, 143, 161, 179, 389, 427, 465, 512, 513, 514, 515, 526, 530, 531, 532, 540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993, 995, 1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080]);
+
 async function start() {
   const app = createMcpHttpServer(catalog);
-  app.httpServer.listen(0, '127.0.0.1');
-  await once(app.httpServer, 'listening');
-  const address = app.httpServer.address();
-  assert.ok(address && typeof address !== 'string');
-  return { ...app, origin: `http://127.0.0.1:${address.port}` };
+  const rejected: number[] = [];
+  try {
+    for (let attempt = 1; attempt <= 8; attempt++) {
+      app.httpServer.listen(0, '127.0.0.1'); await once(app.httpServer, 'listening');
+      const address = app.httpServer.address(); assert.ok(address && typeof address !== 'string');
+      const origin = `http://127.0.0.1:${address.port}`;
+      const blocked = fetchBlockedPorts.has(address.port);
+      console.log(JSON.stringify({ fixture: 'mcp-test-listener', attempt, address: address.address, port: address.port, url: `${origin}/mcp`, blocked_by_fetch: blocked }));
+      if (!blocked) return { ...app, origin };
+      // Reallocate only a confirmed forbidden port, before any client or contract assertion runs.
+      rejected.push(address.port);
+      await new Promise<void>((resolve, reject) => app.httpServer.close(error => error ? reject(error) : resolve()));
+    }
+    throw new Error(`No Fetch-compatible ephemeral port after 8 allocations; rejected ports: ${rejected.join(', ')}`);
+  } catch (error) { await app.close(); throw error; }
 }
 
 const validator = new AjvJsonSchemaValidator();
@@ -27,9 +40,9 @@ test('multiword match reasons reflect real fields, deduplicate sources and agree
   const app = await start(); t.after(() => app.close());
   const index = createSearchCatalog(catalog);
   const cases = [
-    { query: 'no logo', ids: ['mint-watercolor-avatar', 'seaside-watercolor-station', 'shiba-reaction-stickers', 'sleepy-cat-four-panel', 'stargazer-character-sheet'], reasons: ['提示词正文关键词匹配'] },
-    { query: 'no logo watermark ui delicate pencil linework translucent', ids: ['mint-watercolor-avatar'], reasons: ['提示词正文关键词匹配'] },
-    { query: 'avatar 薄荷 no logo', ids: ['mint-watercolor-avatar'], reasons: ['用途、画风或模型词表匹配', '名称、关键词或简介匹配', '提示词正文关键词匹配'] },
+    { query: 'no logo', ids: ['mint-watercolor-avatar', 'seaside-watercolor-station', 'shiba-reaction-stickers', 'sleepy-cat-four-panel', 'stargazer-character-sheet', 'summer-anime-illustrator', 'windchime-librarian-avatar'], reasons: ['提示词正文关键词匹配'] },
+    { query: 'no logo watermark ui delicate pencil linework translucent', ids: ['mint-watercolor-avatar', 'windchime-librarian-avatar'], reasons: ['提示词正文关键词匹配'] },
+    { query: 'avatar 薄荷 no logo', ids: ['mint-watercolor-avatar', 'windchime-librarian-avatar'], reasons: ['用途、画风或模型词表匹配', '名称、关键词或简介匹配', '提示词正文关键词匹配'] },
   ];
   for (const mode of ['modern', 'legacy'] as const) {
     const client = new Client({ name: `${mode}-match-reasons-test`, version: '1.0.0' }, { versionNegotiation: { mode: mode === 'modern' ? { pin: '2026-07-28' } : 'legacy' } });
@@ -38,11 +51,11 @@ test('multiword match reasons reflect real fields, deduplicate sources and agree
     const listing = await client.listTools();
     const schema = listing.tools.find(tool => tool.name === 'search_prompts')!.outputSchema!;
     for (const { query, ids, reasons } of cases) {
-      const full = searchPrompts(catalog, { query }); assert.ok(full.ok);
+      const full = searchPrompts(catalog, { query, limit: 20 }); assert.ok(full.ok);
       assert.deepEqual(full.data.items.map(item => item.id), ids);
       for (const item of full.data.items) assert.deepEqual(item.match_reasons, reasons);
-      assert.deepEqual(searchPrompts(index, { query }), full);
-      const response = await client.callTool({ name: 'search_prompts', arguments: { query } });
+      assert.deepEqual(searchPrompts(index, { query, limit: 20 }), full);
+      const response = await client.callTool({ name: 'search_prompts', arguments: { query, limit: 20 } });
       assert.equal(response.isError, false);
       const checked = validator.getValidator(schema)(response.structuredContent); assert.ok(checked.valid, checked.errorMessage);
       const structured = response.structuredContent as { result?: unknown };

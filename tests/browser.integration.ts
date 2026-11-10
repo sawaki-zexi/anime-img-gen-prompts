@@ -28,6 +28,10 @@ test('real mobile browser follows keyboard filters, pagination, share URLs, deta
   const files = await resources.fixture();
   const server = await resources.serve(path.join(projectRoot, 'dist'));
   const browser = await resources.browser(path.join(files.directory, 'chrome'));
+  const firstPage = searchPrompts(catalog); assert.ok(firstPage.ok && firstPage.data.next_cursor);
+  const secondPage = searchPrompts(catalog, { cursor: firstPage.data.next_cursor }); assert.ok(secondPage.ok);
+  const secondPageIds = secondPage.data.items.map(item => item.id);
+  const avatarIds = catalog.prompts.filter(item => item.use_cases.includes('avatar')).map(item => item.id).sort().slice(0, 5);
   await browser.viewport(360, true);
   await browser.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }, { name: 'prefers-color-scheme', value: 'light' }] });
   await browser.send('Browser.grantPermissions', { origin: server.origin, permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'] }, false);
@@ -36,20 +40,22 @@ test('real mobile browser follows keyboard filters, pagination, share URLs, deta
   assert.equal(server.requests.filter(value => value.startsWith('/data/prompts/')).length, 0);
   assert.ok(server.requests.filter(value => /\.webp$/.test(value) && !value.endsWith('-thumb.webp')).every(value => value.endsWith('summer-anime-illustrator.webp')));
   await browser.tabTo('#next-page'); await browser.key('Enter');
-  await browser.wait(`document.querySelector('#result-count').textContent.includes('1')`);
+  await browser.wait(`(${visibleIds}).join(',') === ${JSON.stringify(secondPageIds.join(','))}`);
   const pageUrl = await browser.evaluate<string>('location.href');
   const expected = searchPrompts(catalog, readSearchParams(new URL(pageUrl).searchParams)); assert.ok(expected.ok);
   assert.deepEqual(await browser.evaluate(visibleIds), expected.data.items.map(item => item.id));
-  await browser.navigate(pageUrl, `document.querySelector('#result-count')?.textContent.includes('1')`);
+  await browser.navigate(pageUrl, `(${visibleIds}).join(',') === ${JSON.stringify(secondPageIds.join(','))}`);
   assert.deepEqual(await browser.evaluate(visibleIds), expected.data.items.map(item => item.id));
   await browser.click('#clear-search');
   await browser.tabTo('[name=use_case][value=avatar]'); await browser.key(' ');
-  await browser.wait(`${visibleIds}.length === 1`);
-  assert.deepEqual(await browser.evaluate(visibleIds), ['mint-watercolor-avatar']);
+  await browser.wait(`(${visibleIds}).join(',') === ${JSON.stringify(avatarIds.join(','))}`);
+  assert.deepEqual(await browser.evaluate(visibleIds), avatarIds);
   await browser.tabTo('.card-art-link'); await browser.key('Enter');
   await browser.wait(`document.querySelector('#variable-subject') && document.querySelector('#rendered-prompt')?.value.length > 0`);
   assert.equal(await browser.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), true);
   await browser.tabTo('#variable-subject'); await browser.replace('my adult traveler\n中文 $& {subject}');
+  // SSR supplies a default preview; wait for client-side variable handling before exercising copy.
+  await browser.wait(`document.querySelector('#rendered-prompt').value.includes(${JSON.stringify('my adult traveler\n中文 $& {subject}')})`);
   await browser.tabTo('#copy-rendered'); await browser.key('Enter');
   await browser.wait(`document.querySelector('#render-copy-status').textContent.includes('已复制')`);
   // The Windows system clipboard exposes line breaks as CRLF.
@@ -119,7 +125,7 @@ test('real browser renders negative prompts, field limits, new taxonomy and arch
   taxonomy.use_cases.push({ id: 'book-cover', label: '书封', aliases: ['book cover'] });
   await writeFile(taxonomyPath, JSON.stringify(taxonomy));
   const built = await buildFixtureSite(files);
-  assert.equal(built.prompts.length, 6);
+  assert.equal(built.prompts.length, catalog.prompts.length);
   assert.ok(!built.prompts.some(item => item.id === prompt.id));
   const server = await resources.serve(path.join(files.directory, 'dist'));
   const browser = await resources.browser(path.join(files.directory, 'chrome'));

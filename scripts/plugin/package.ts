@@ -114,6 +114,9 @@ export async function buildPlugin(options: { output: string; mcpUrl: string; gal
     const target = path.join(pluginRoot, filename);
     await mkdir(path.dirname(target), { recursive: true }); await writeFile(target, bytes, { flag: 'wx' });
   }
+  // Git-backed installs must preserve the same bytes validated in the ZIP, even with core.autocrlf=true.
+  // This belongs to the marketplace root; it is not an extra file inside the plugin or its ZIP.
+  await writeFile(path.join(marketplaceRoot, '.gitattributes'), '* -text\n', { flag: 'wx' });
   const marketplace = { name: config.marketplace, interface: { displayName: config.displayName }, plugins: [{ name: config.name, source: { source: 'local', path: `./plugins/${config.name}` }, policy: { installation: 'AVAILABLE', authentication: 'ON_INSTALL' }, category: 'Design' }] };
   await mkdir(path.join(marketplaceRoot, '.agents/plugins'), { recursive: true });
   await writeFile(path.join(marketplaceRoot, '.agents/plugins/marketplace.json'), json(marketplace));

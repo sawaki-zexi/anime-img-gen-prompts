@@ -55,4 +55,3 @@ export function createPromptMcpServer(catalog: Catalog, observe: (event: ToolEve
   }, args => result('render_prompt', renderPrompt(catalog, args)));
   return server;
 }
-

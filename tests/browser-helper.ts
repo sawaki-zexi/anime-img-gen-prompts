@@ -49,14 +49,41 @@ export class Browser {
     const browser = new Browser();
     const executable = [process.env.CHROME_BIN, 'C:/Program Files/Google/Chrome/Application/chrome.exe', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find(value => value && existsSync(value));
     assert.ok(executable, 'Install Chrome/Chromium or set CHROME_BIN to run browser acceptance checks.');
-    browser.process = spawn(executable, ['--headless=new', '--disable-gpu', '--disable-dev-shm-usage', '--no-sandbox', '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { windowsHide: true, stdio: 'ignore' });
-    try {
+    const startupTimeoutMs = 30000;
+    const startupAbort = new AbortController();
+    let phase = 'DevToolsActivePort';
+    let stderrTail = '';
+    const diagnostic = (reason: string) => new Error(`${reason} while waiting for ${phase}. Chrome stderr (last 8192 characters):\n${stderrTail || '(empty)'}`);
+    browser.process = spawn(executable, ['--headless=new', '--disable-gpu', '--disable-dev-shm-usage', '--no-sandbox', '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
+    browser.process.stderr!.on('data', (chunk: Buffer) => { stderrTail = (stderrTail + chunk.toString()).slice(-8192); });
+    let rejectStartup!: (error: Error) => void;
+    const failedStartup = new Promise<never>((_resolve, reject) => { rejectStartup = reject; });
+    const failStartup = (error: Error) => { startupAbort.abort(error); rejectStartup(error); };
+    const processError = (error: Error) => failStartup(diagnostic(`Chrome failed to start: ${error.message}`));
+    const processExit = (code: number | null, signal: NodeJS.Signals | null) => failStartup(diagnostic(`Chrome exited before readiness (code=${code}, signal=${signal})`));
+    browser.process.once('error', processError); browser.process.once('exit', processExit);
+    const startupTimer = setTimeout(() => failStartup(diagnostic(`Chrome readiness timed out after ${startupTimeoutMs} ms`)), startupTimeoutMs);
+    const initialize = async () => {
       const portFile = path.join(profile, 'DevToolsActivePort');
-      for (let index = 0; index < 100 && !existsSync(portFile); index++) await pause(100);
-      const port = (await readFile(portFile, 'utf8')).split('\n')[0];
-      const info = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json() as { webSocketDebuggerUrl: string };
+      while (!existsSync(portFile)) { startupAbort.signal.throwIfAborted(); await pause(100); }
+      startupAbort.signal.throwIfAborted();
+      const port = (await readFile(portFile, { encoding: 'utf8', signal: startupAbort.signal })).split('\n')[0]!.trim();
+      if (!/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535) throw diagnostic('Chrome wrote an invalid DevTools port');
+      phase = 'DevTools HTTP readiness';
+      const response = await fetch(`http://127.0.0.1:${port}/json/version`, { signal: startupAbort.signal });
+      if (!response.ok) throw diagnostic(`Chrome DevTools returned HTTP ${response.status}`);
+      const info = await response.json() as { webSocketDebuggerUrl: string };
+      phase = 'DevTools WebSocket';
       browser.socket = new WebSocket(info.webSocketDebuggerUrl);
-      await new Promise<void>((resolve, reject) => { browser.socket.addEventListener('open', () => resolve(), { once: true }); browser.socket.addEventListener('error', reject, { once: true }); });
+      await new Promise<void>((resolve, reject) => {
+        const cleanup = () => { browser.socket.removeEventListener('open', opened); browser.socket.removeEventListener('error', failed); startupAbort.signal.removeEventListener('abort', aborted); };
+        const opened = () => { cleanup(); resolve(); };
+        const failed = () => { cleanup(); reject(diagnostic('Chrome DevTools WebSocket failed')); };
+        const aborted = () => { cleanup(); browser.socket.close(); reject(startupAbort.signal.reason); };
+        browser.socket.addEventListener('open', opened, { once: true }); browser.socket.addEventListener('error', failed, { once: true });
+        startupAbort.signal.addEventListener('abort', aborted, { once: true });
+        if (startupAbort.signal.aborted) aborted();
+      });
       browser.socket.addEventListener('message', event => {
         const message = JSON.parse(String(event.data));
         if (message.id) {
@@ -66,6 +93,7 @@ export class Browser {
         }
         if (message.method === 'Runtime.exceptionThrown') browser.errors.push(message.params.exceptionDetails.exception?.description ?? message.params.exceptionDetails.text);
       });
+      phase = 'DevTools session initialization';
       const { targetId } = await browser.send('Target.createTarget', { url: 'about:blank' }, false);
       const { sessionId } = await browser.send('Target.attachToTarget', { targetId, flatten: true }, false);
       browser.session = sessionId;
@@ -73,8 +101,12 @@ export class Browser {
       await browser.send('Page.bringToFront');
       await browser.send('Emulation.setFocusEmulationEnabled', { enabled: true });
       await browser.send('Network.setBlockedURLs', { urls: ['*fonts.googleapis.com*', '*fonts.gstatic.com*'] });
+    };
+    try {
+      await Promise.race([initialize(), failedStartup]);
       return browser;
-    } catch (error) { await browser.close(); throw error; }
+    } catch (error) { startupAbort.abort(error); await browser.close(); throw error; }
+    finally { clearTimeout(startupTimer); browser.process.removeListener('error', processError); browser.process.removeListener('exit', processExit); }
   }
 
   send(method: string, params: Record<string, unknown> = {}, session = true): Promise<any> {
