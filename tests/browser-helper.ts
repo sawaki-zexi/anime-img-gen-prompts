@@ -41,6 +41,7 @@ export class Browser {
   private sequence = 0;
   private pending = new Map<number, Pending>();
   private session = '';
+  private loaderId = '';
   private socket!: WebSocket;
   private process!: ChildProcess;
   readonly errors: string[] = [];
@@ -92,6 +93,7 @@ export class Browser {
           if (message.error) pending.reject(new Error(message.error.message)); else pending.resolve(message.result);
         }
         if (message.method === 'Runtime.exceptionThrown') browser.errors.push(message.params.exceptionDetails.exception?.description ?? message.params.exceptionDetails.text);
+        if (message.method === 'Page.frameNavigated' && !message.params.frame.parentId) browser.loaderId = message.params.frame.loaderId;
       });
       phase = 'DevTools session initialization';
       const { targetId } = await browser.send('Target.createTarget', { url: 'about:blank' }, false);
@@ -122,15 +124,21 @@ export class Browser {
     if (value.exceptionDetails) throw new Error(value.exceptionDetails.exception?.description ?? value.exceptionDetails.text);
     return value.result.value;
   }
-  async wait(expression: string) {
+  async wait(expression: string, expectedLoaderId?: string) {
     for (let index = 0; index < 120; index++) {
-      try { if (await this.evaluate(expression)) return; } catch { /* Navigation can replace the execution context. */ }
+      // SSR elements can exist before deferred modules bind their handlers. Never interact with that intermediate document.
+      try { if ((!expectedLoaderId || this.loaderId === expectedLoaderId) && await this.evaluate(`document.readyState === 'complete' && (${expression})`)) return; } catch { /* Navigation can replace the execution context. */ }
       await pause(50);
     }
-    const state = await this.evaluate(`({ url: location.href, focus: document.activeElement?.id, controls: [...document.querySelectorAll('#variables-form input, #variables-form textarea, #variables-form select')].map(item => [item.id, item.value]), error: document.querySelector('#render-error')?.textContent })`);
-    throw new Error(`Browser condition did not become true: ${expression}\n${JSON.stringify(state)}`);
+    const state = await this.evaluate(`({ url: location.href, ready_state: document.readyState, focus: document.activeElement?.id, controls: [...document.querySelectorAll('#variables-form input, #variables-form textarea, #variables-form select')].map(item => [item.id, item.value]), error: document.querySelector('#render-error')?.textContent })`);
+    throw new Error(`Browser condition did not become true: ${expression}\n${JSON.stringify({ ...state, expected_loader_id: expectedLoaderId ?? null, actual_loader_id: this.loaderId })}`);
   }
-  async navigate(url: string, ready: string) { await this.send('Page.navigate', { url }); await this.wait(`document.readyState !== 'loading' && (${ready})`); }
+  async navigate(url: string, ready: string) {
+    const result = await this.send('Page.navigate', { url });
+    if (result.errorText) throw new Error(`Browser navigation failed: ${result.errorText}`);
+    // The previous page can still be complete when Page.navigate returns. Confirm this navigation's loader and URL first.
+    await this.wait(`location.href === ${JSON.stringify(new URL(url).href)} && (${ready})`, result.loaderId);
+  }
   async viewport(width: number, mobile = false) { await this.send('Emulation.setDeviceMetricsOverride', { width, height: 950, deviceScaleFactor: 1, mobile }); }
   async click(selector: string) {
     const rect = await this.evaluate<{ x: number; y: number }>(`(() => { const element = document.querySelector(${JSON.stringify(selector)}); if (!element) throw new Error('Missing target'); element.scrollIntoView({ block: 'center', behavior: 'instant' }); const rect = element.getBoundingClientRect(); return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }; })()`);
