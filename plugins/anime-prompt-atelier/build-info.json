@@ -2,11 +2,11 @@
   "schema_version": 1,
   "mode": "release",
   "plugin": "anime-prompt-atelier",
-  "plugin_version": "0.1.0",
+  "plugin_version": "0.1.1",
   "mcp_url": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp",
   "gallery_url": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/",
   "authentication": "none",
   "content": "remote-current-snapshot",
-  "catalog_revision_at_build": "sha256:d419ce74d5f54b2e1d893cc02f31b42ecaff5daa9dda1b6151eec68169397831",
-  "source_revision": "sha256:473a3ab04fcbb0badc7651b2bb1f345c038c00eb8769d15d28fcef069cb65353"
+  "catalog_revision_at_build": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c",
+  "source_revision": "sha256:a8874fedca81959ad77e0ddaa2c0247e833815c97dbaa7decc350d439194b4b2"
 }

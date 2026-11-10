@@ -1,6 +1,6 @@
 {
   "name": "anime-prompt-atelier",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "按动漫创作目标检索有真实示例的模板，填写变量并交给可用的生图工具。",
   "author": {
     "name": "sawaki-zexi"
