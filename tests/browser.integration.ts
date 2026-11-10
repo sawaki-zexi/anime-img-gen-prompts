@@ -13,19 +13,24 @@ import { syntheticCatalog } from '../benchmarks/fixture.ts';
 
 const visibleIds = `Array.from(document.querySelectorAll('#prompt-grid [data-prompt-id]'), item => item.dataset.promptId)`;
 
-test('real production mobile gallery copies both user originals and states reference-image and unknown-generation conditions without retired content', { timeout: 120000 }, async t => {
+test('real production gallery preserves full images and copies all user originals with reference-image and unknown-generation conditions', { timeout: 120000 }, async t => {
   const resources = browserTestResources(t), files = await resources.fixture();
   const server = await resources.serve(path.join(projectRoot, 'dist'));
   const browser = await resources.browser(path.join(files.directory, 'chrome'));
   const proof = JSON.parse(await readFile(path.join(projectRoot, 'docs/validation/evidence/content-replacement-hashes.json'), 'utf8'));
   await browser.viewport(360, true);
   await browser.send('Browser.grantPermissions', { origin: server.origin, permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'] }, false);
-  await browser.navigate(server.origin, `${visibleIds}.length === 2`);
+  await browser.navigate(server.origin, `${visibleIds}.length === ${productionCatalog.prompts.length}`);
   assert.deepEqual(await browser.evaluate(visibleIds), productionCatalog.prompts.map(prompt => prompt.id));
   assert.ok((await browser.evaluate<string>('document.querySelector(".hero-credit").textContent')).includes('收录配图'));
   assert.equal(await browser.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), true);
+  assert.equal(await browser.evaluate(`[...document.querySelectorAll('#prompt-grid .card-art-link')].every(frame => getComputedStyle(frame).aspectRatio === '1 / 1' && getComputedStyle(frame.querySelector('img')).objectFit === 'contain')`), true);
   for (const prompt of productionCatalog.prompts) {
     await browser.navigate(`${server.origin}/prompts/${prompt.id}/`, `document.querySelector('#original-prompt')?.value.length > 0`);
+    await browser.wait(`document.querySelector('.detail-art img')?.naturalWidth > 0`);
+    const dimensions = await browser.evaluate(`(() => { const image = document.querySelector('.detail-art img'); return { width: image.naturalWidth, height: image.naturalHeight, fit: getComputedStyle(image).objectFit, boxWidth: image.getBoundingClientRect().width, boxHeight: image.getBoundingClientRect().height }; })()`);
+    assert.equal(dimensions.width, prompt.examples[0]!.width); assert.equal(dimensions.height, prompt.examples[0]!.height); assert.equal(dimensions.fit, 'contain');
+    assert.ok(Math.abs(dimensions.boxWidth / dimensions.boxHeight - dimensions.width / dimensions.height) < 0.01);
     assert.equal(await browser.evaluate('document.querySelector("#original-prompt").value'), prompt.template);
     assert.equal(await browser.evaluate('document.querySelector("#rendered-prompt").value'), prompt.template);
     assert.equal(await browser.evaluate('document.querySelectorAll("#variables-form [data-variable]").length'), 0);
@@ -40,6 +45,14 @@ test('real production mobile gallery copies both user originals and states refer
     assert.equal(await browser.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), true);
   }
   for (const requested of server.requests) for (const id of proof.removed_ids) assert.ok(!requested.includes(id));
+  await browser.viewport(1280);
+  await browser.navigate(server.origin, `${visibleIds}.length === ${productionCatalog.prompts.length}`);
+  assert.equal(await browser.evaluate(`[...document.querySelectorAll('#prompt-grid .card-art-link')].every(frame => getComputedStyle(frame).aspectRatio === '1 / 1' && getComputedStyle(frame.querySelector('img')).objectFit === 'contain')`), true);
+  assert.equal(await browser.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), true);
+  for (const prompt of productionCatalog.prompts) {
+    await browser.navigate(`${server.origin}/prompts/${prompt.id}/`, `document.querySelector('.detail-art img')?.naturalWidth > 0`);
+    assert.equal(await browser.evaluate(`(() => { const image = document.querySelector('.detail-art img'); return getComputedStyle(image).objectFit === 'contain' && Math.abs(image.getBoundingClientRect().width / image.getBoundingClientRect().height - image.naturalWidth / image.naturalHeight) < 0.01 && document.documentElement.scrollWidth <= innerWidth + 1; })()`), true);
+  }
   assert.deepEqual(browser.errors, []);
 });
 

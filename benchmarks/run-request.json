@@ -1,6 +1,6 @@
 {
-  "request": "user-supplied-two-record-release-acceptance",
-  "source_content_count": 2,
+  "request": "user-supplied-three-record-release-acceptance",
+  "source_content_count": 3,
   "fixture_count": 1000,
   "concurrency": 20,
   "warmup_seconds": 15,

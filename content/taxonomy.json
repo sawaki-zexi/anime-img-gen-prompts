@@ -68,6 +68,17 @@
         "Q 版",
         "软萌"
       ]
+    },
+    {
+      "id": "cotton-doll",
+      "label": "棉花娃娃",
+      "aliases": [
+        "棉花娃娃",
+        "毛绒娃娃",
+        "plush doll",
+        "cotton doll",
+        "20cm"
+      ]
     }
   ],
   "models": []

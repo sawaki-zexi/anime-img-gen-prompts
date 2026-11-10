@@ -1,6 +1,6 @@
 # 插件安装与验证
 
-源码插件已更新为 **0.1.2**，增加角色重绘必须先有用户原角色参考图，缺少时先询问，不以效果配图中的人物替代用户角色。当前源码仅两组用户提供原文与配图；实际新版本发布状态见 [画廊接入页](https://anime-prompt-atelier.memorablestone1.chatgpt.site/install/) 与 [内容替换记录](validation/content-replacement.md)。旧0.1.1的干净安装和0.1.0更新证据仍作为历史保留在 [Issue #5](validation/issue-5-release.md)，不自动视为新Skill已发布或行为通过。尚未进入官方公共目录。
+已发布的 **0.1.2** 插件保持原包不变；当前仅增加远程内容，无需修改或重新安装插件。仅当选中的模板要求参考图时，实际生图前先取得用户参考图；纯检索/复制可先交全文，效果配图不替代用户角色。当前源码收录三组用户提供原文与配图，新增20cm棉花娃娃；实际内容上线结果见 [画廊接入页](https://anime-prompt-atelier.memorablestone1.chatgpt.site/install/) 与 [内容替换记录](validation/content-replacement.md)。历史安装证据保留，尚未进入官方公共目录。
 
 在已安装 Codex CLI 的电脑中运行：
 
@@ -11,7 +11,7 @@ codex plugin add anime-prompt-atelier@anime-atelier-plugins
 
 安装后开启新会话，在其他项目描述动漫创作目标即可。下载的 ZIP 是可移植插件产物，能否直接导入取决于客户端；CLI 使用以上经过验证的 marketplace 步骤。`plugin-release` 是长期分发分支，不随功能 PR 的分支清理而删除。
 
-普通用户从已验证分发源安装后开启新会话。库的用途可以扩展，当前仅有两条角色重绘模板，必须先提供原角色参考图；效果配图不自动充当角色参考。不要求Node.js、Python、本地服务、内容仓库副本或生图API Key。插件不生图；有宿主工具时交接，无工具时交付完整提示词。
+普通用户从已验证分发源安装后开启新会话。库的用途可以扩展，当前仅有三条角色重绘模板，必须先提供原角色参考图；效果配图不自动充当角色参考。不要求Node.js、Python、本地服务、内容仓库副本或生图API Key。插件不生图；有宿主工具时交接，无工具时交付完整提示词。
 
 ## 当前客户端状态
 

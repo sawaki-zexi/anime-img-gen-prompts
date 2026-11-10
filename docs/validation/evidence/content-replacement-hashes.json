@@ -30,6 +30,21 @@
       "decoded_pixels_equal": true,
       "source_png_unchanged": true,
       "generation_date": null
+    },
+    {
+      "id": "cotton-doll-20cm-character-redraw",
+      "prompt_sha256": "296b291410828a16903d6a366d044c00561dfb659407ed47fb48c1718a7f059c",
+      "source_png_sha256": "394c86fcd98a80e8dd25f262169653d33854dae1364a033567e288ed61cc3202",
+      "image_webp_sha256": "5b584ff75be044ab2cfdc85fdbb68e38eee3e2e5c0e8beea367f0ce4cd2d8788",
+      "thumbnail_sha256": "f13aeb28dd071af77c5a568a8abf1a770d8231b302dfcfe186a3047d9da83889",
+      "width": 1086,
+      "height": 1448,
+      "thumbnail_width": 360,
+      "thumbnail_height": 480,
+      "decoded_rgba_sha256": "f9d7f23ea37b532877c2dba7d1af6634678936c83604adb745db9855f27a3313",
+      "decoded_pixels_equal": true,
+      "source_png_unchanged": true,
+      "generation_date": null
     }
   ],
   "removed_ids": [

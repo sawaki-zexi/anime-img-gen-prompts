@@ -2,7 +2,7 @@
 
 发布配置在 `release/production.json`，保留已创建的 Site `appgprj_6af28af93d9081918cccb09ace648204`。期望来源为 `https://anime-prompt-atelier.memorablestone1.chatgpt.site`，MCP 路径为 `/api/mcp`，健康检查为 `/health`。配置中的地址是发布目标；实际可达性、公开权限、平台版本及预算结果以 [验收记录](validation/issue-5-release.md) 为准。
 
-2026-11-10的七条种子内容与0.1.1发布是已保留的历史验收。随后用户要求删除这些助手示例，改为两条用户提供原文与配图。当前源码为两条/4张WebP、插件0.1.2；本轮实际发布另记在 [内容替换记录](validation/content-replacement.md)，旧报告不能替代。桌面端完整安装仍尚未验证。
+2026-11-10的七条种子内容与0.1.1发布是已保留的历史验收。随后用户要求删除这些助手示例，改为三条用户提供原文与配图。当前源码为三条/6张WebP、插件0.1.2；本轮实际发布另记在 [内容替换记录](validation/content-replacement.md)，旧报告不能替代。桌面端完整安装仍尚未验证。
 
 普通用户只访问公开画廊或安装发布插件，不需要源码仓库、Node.js、本地 MCP、认证密钥或后台进程。以下命令仅供维护者使用。
 
@@ -40,7 +40,7 @@ npm run plugin:build -- --mcp-url https://anime-prompt-atelier.memorablestone1.c
 npm run release:build -- --out artifacts/releases/distribution-v1 --plugin-dir artifacts/releases/plugin-v1
 ```
 
-默认 release 插件构建会实际连接远程服务，完成工具发现、搜索、详情、渲染，并比较画廊与健康检查的内容版本；失败不产出发布包。包只记录构建时版本，不固定返回旧内容，始终查询同一个远程当前快照。第二次 release 构建重新 preflight，要求 ZIP、插件元信息、服务与本次内容快照一致，拒绝 evaluation 包。
+首次构建 release 插件会实际连接远程服务，完成工具发现、搜索、详情、渲染，并比较画廊与健康检查的内容版本；失败不产出发布包。已发布插件是不可变产物：仅内容更新时复用同一生产端点的原包，不以相同插件版本重构ZIP。`catalog_revision_at_build` 如实保留当时快照，须与包自己的build-report一致；8文件哈希、确定性ZIP、插件版本和生产端点仍严格核对。每次分发候选的远程preflight必须匹配这次新catalog，manifest分别记录当前内容版本和插件原构建版本，evaluation包仍被拒绝。
 
 `distribution-v1` 将真实 ZIP 内嵌在 `/downloads/`，安装页提供下载与校验信息。只有维护者已经把**生成的 marketplace 根目录**实际发布到独立长期 ref 并完成隔离安装验证后，才能增加 `--marketplace-ref plugin-release` 再构建分发候选。该参数是已完成 Git 分发的记录，不会替维护者创建分支或发布，也不能当作已验证安装的证明。届时普通用户最短 CLI 步骤为：
 
@@ -58,7 +58,7 @@ codex plugin add anime-prompt-atelier@anime-atelier-plugins
 3. 记录当前生产 Site version ID、旧产物目录及其 SHA-256。用 Sites 保存并部署新候选；等待平台终态，核对无认证 `/health` 与 `/release.json` 的 revision 和真实工具响应。
 4. 原有插件指向固定 `/api/mcp`。保持同一已安装插件和用户配置，在新会话查询新增 ID；不重装插件。记录安装版本、原/新内容 revision、真实返回值和 Site version ID。仅在需要改 Skill 或连接配置时另行更新插件版本。
 5. 同一旧游标遇到新版本必须返回 `INVALID_CURSOR`，旧模板修订必须返回 `REVISION_MISMATCH`；从第一页重新搜索并读取当前修订后重试，不悄悄混用版本。
-6. 生产更新通过后，可用原插件版本重新构建对应新快照的 ZIP 和分发候选；同样记录构建时版本。不要把旧分发 manifest 冒充新快照。
+6. 生产内容更新通过后，复用原有不可变release插件构建新的分发候选（`--plugin-dir` 指向保留产物）；包自己的构建快照不变，新manifest的当前catalog版本更新。无客户端行为或端点变更时无需重新安装、改包或重发同版本ZIP；只有确有Skill/客户端行为变更才提升插件版本另发新包。
 
 代码中的 `createSnapshotStore` 是维护与测试的内存切换接口，没有公开 HTTP 写入端点。它先检查完整 Schema、内容摘要与站点来源，再替换活动快照的单一引用；失败保留旧快照。Node 进程启动也校验内容摘要；不自动运行内容脚本，不逐次查询仓库。
 

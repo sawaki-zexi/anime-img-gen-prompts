@@ -30,13 +30,14 @@ export async function buildRelease(options: { output: string; pluginDir?: string
     const report = releaseReportSchema.parse(JSON.parse(await readFile(path.join(directory, 'build-report.json'), 'utf8')));
     const pluginRoot = path.join(directory, 'marketplace/plugins', pluginConfig.name);
     const validated = await validatePlugin(pluginRoot);
-    if (validated.mode !== 'release' || report.mode !== 'release' || report.catalog_revision_at_build !== catalog.catalog_revision || report.mcp_url !== `${production.origin}${config.mcpPath}` || report.gallery_url !== `${production.origin}/` || report.archive !== `${pluginConfig.name}-${pluginConfig.version}.zip`) throw new Error('插件不是此生产地址和内容快照的 release 产物');
+    if (validated.mode !== 'release' || report.mode !== 'release' || report.mcp_url !== `${production.origin}${config.mcpPath}` || report.gallery_url !== `${production.origin}/` || report.archive !== `${pluginConfig.name}-${pluginConfig.version}.zip`) throw new Error('插件不是此生产地址和版本的 release 产物');
     const archive = await readFile(path.join(directory, report.archive));
     if (sha256(archive) !== report.archive_sha256) throw new Error('插件 ZIP 摘要不符');
     const pluginFiles = await listFiles(pluginRoot);
     if (!archive.equals(deterministicZip(pluginFiles))) throw new Error('插件 ZIP 与已验证的 marketplace 内容不同');
     const info = JSON.parse(pluginFiles.get('build-info.json')!.toString());
-    if (info.catalog_revision_at_build !== catalog.catalog_revision) throw new Error('插件元信息与候选内容版本不同');
+    // Content-only deployments reuse the immutable plugin; its historical build snapshot must match its own report.
+    if (info.catalog_revision_at_build !== report.catalog_revision_at_build) throw new Error('插件元信息与自身构建报告的内容版本不同');
     if (JSON.stringify(Object.fromEntries([...pluginFiles].sort(([a], [b]) => a.localeCompare(b, 'en')).map(([name, bytes]) => [name, sha256(bytes)]))) !== JSON.stringify(Object.fromEntries(Object.entries(report.files).sort(([a], [b]) => a.localeCompare(b, 'en'))))) throw new Error('插件文件与构建报告不同');
     const preflight = await verifyRemoteContract(report.mcp_url, report.gallery_url);
     if (preflight.catalog_revision !== catalog.catalog_revision) throw new Error('当前生产服务与候选快照不同');
