@@ -7,6 +7,10 @@
   "scripts": {
     "lockfile:check": "node scripts/check-lockfile.ts",
     "content:build": "tsx scripts/build-catalog.ts",
+    "plugin:build": "tsx scripts/build-plugin.ts",
+    "plugin:validate": "tsx scripts/validate-plugin.ts",
+    "plugin:probe": "tsx scripts/probe-plugin.ts",
+    "plugin:eval": "npm run content:build && tsx scripts/evaluate-plugin.ts",
     "dev": "npm run content:build && astro dev --host 127.0.0.1",
     "dev:mcp": "npm run content:build && tsx src/server/start.ts",
     "build": "npm run content:build && astro build",

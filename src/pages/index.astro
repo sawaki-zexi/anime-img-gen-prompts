@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import PromptCard from '../components/PromptCard.astro';
-import { catalog, searchCatalog, localPath, jsonForScript } from '../lib/site.ts';
+import { catalog, searchCatalog, localPath, jsonForScript, sitePath } from '../lib/site.ts';
 import { searchPrompts } from '../lib/catalog.ts';
 const result = searchPrompts(searchCatalog, {});
 if (!result.ok) throw new Error(result.error.message);
@@ -36,6 +36,7 @@ const hasPublished = catalog.prompts.length > 0;
       <div class="pagination" aria-label="画廊分页"><button class="btn btn-outline btn-sm" id="first-page" type="button" hidden>回到第一页</button><button class="btn btn-primary" id="next-page" type="button" disabled={!result.data.next_cursor}>下一页 <span aria-hidden="true">→</span></button><span class="page-status" id="page-status">{result.data.next_cursor ? '还有更多灵感' : '已看到本次检索的最后一页'}</span></div>
       <noscript><p class="alert">启用 JavaScript 后可筛选、翻页与直接复制。你也可以打开上方任一详情，选择模板文本复制。</p></noscript>
     </section>
+    <aside class="card gallery-plugin-note"><span aria-hidden="true">✦</span><div><strong>想把灵感带到其他项目？</strong><p>查看插件的接入方式、测试状态与支持范围。</p></div><a class="btn btn-ghost btn-sm" href={sitePath('install/')}>查看插件接入 ↗</a></aside>
     <div class="gallery-caption">从人物到远方的风景，让灵感有迹可循。<br />每条都有独立示例、生成记录与来源。</div>
   </div>
   <template id="prompt-card-template">{templateItem && <PromptCard item={templateItem} />}</template>
