@@ -2,9 +2,24 @@
 
 看图片，找到动漫风格提示词，填入自己的主角，再复制到图像生成工具。
 
-目前收录六条独立生成的真实样例，覆盖头像、角色立绘、场景、壁纸、漫画、插画、表情包与贴纸。每条的原始提示词、实际生成图、变量与已知生成条件共同保存在仓库中；未知的底层模型、版本和种子如实保留为未知。插件仍按真实客户端结果标记实验；公开托管与正式分发由 [Issue #5](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/5) 推进，实际状态见 [发布验收记录](docs/validation/issue-5-release.md)。
+打开 [公开画廊](https://anime-prompt-atelier.memorablestone1.chatgpt.site/) 浏览和复制，或从 [插件接入页](https://anime-prompt-atelier.memorablestone1.chatgpt.site/install/) 将模板检索带到其他项目。
 
-画廊的 `/install/` 是插件接入入口：第一阶段只提供画廊回退，生产服务验证后第二阶段才展示实际 ZIP 与已发布 marketplace 步骤。普通用户不需要克隆仓库、安装本地运行时或启动服务。真实客户端支持范围、维护者打包和两个项目评测见 [插件安装说明](docs/plugin-installation.md) 与 [实际验证记录](docs/validation/issue-4-plugin.md)。
+目前有七条带独立生成图的内容，覆盖头像、角色立绘、场景、壁纸、漫画、插画、表情包与贴纸；图书管理员头像是已注明来源的主体变体。实际提示词、变量、图片及已知生成条件共同保存，未知的模型、版本、种子和许可如实标明。客户端仍按实测标记实验或未验证，详见 [发布验收记录](docs/validation/issue-5-release.md)。
+
+## 快速使用
+
+浏览画廊不需要登录或 API Key。Codex CLI 已验证的安装步骤：
+
+```sh
+codex plugin marketplace add sawaki-zexi/anime-img-gen-prompts --ref plugin-release
+codex plugin add anime-prompt-atelier@anime-atelier-plugins
+```
+
+安装后开启新会话，在其他项目中描述头像、壁纸、漫画或贴纸需求即可；不必指定库名。现有 0.1.0 安装已经实测直接检索到新增内容。普通用户不需要克隆内容仓库、安装 Node.js 或启动本地服务。
+
+[下载插件 0.1.1 ZIP](https://anime-prompt-atelier.memorablestone1.chatgpt.site/downloads/anime-prompt-atelier-0.1.1.zip) · [标准 MCP 端点](https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp) · [版本与校验值](https://anime-prompt-atelier.memorablestone1.chatgpt.site/release.json)
+
+ZIP 导入取决于宿主支持；CLI 使用上面的 Git 安装步骤。桌面端尚未完成干净安装验收，插件未进入官方公共目录。客户端状态、其他 MCP 接入及维护者测试见 [插件安装说明](docs/plugin-installation.md)。
 
 ## 本地运行
 
@@ -77,7 +92,7 @@ npm run build
 
 成功结果包含 `ok: true`、`catalog_revision` 和 `data`。搜索默认每次 5 条、最多 20 条；详情默认不展开示例。查询上限为 256 个 Unicode 字符，变量最多 32 项、每项最多 2,000 个 Unicode 字符，HTTP 请求体上限为 128 KiB。实际变量还受各自声明的取值与长度限制。
 
-画廊和 MCP 共用确定性关键词检索：用途、画风、模型词表及中英文别名优先，再匹配名称、关键词、简介与正文词项。空格分隔的多个关键词须同时匹配；同维度筛选是 OR，不同维度是 AND，同分按稳定 ID 排序。`model` 接受词表 ID 或别名，也允许查询尚无兼容性记录的模型；明确不兼容项被排除，未知项仍标记未知。`verified_only: true` 需要指定模型，且只返回该模型的已验证条目。当前六条没有具体模型验证记录，因此“仅已验证”不会产生结果。游标绑定完整查询、筛选、每页数量与内容版本，条件改变后应从第一页开始。
+画廊和 MCP 共用确定性关键词检索：用途、画风、模型词表及中英文别名优先，再匹配名称、关键词、简介与正文词项。空格分隔的多个关键词须同时匹配；同维度筛选是 OR，不同维度是 AND，同分按稳定 ID 排序。`model` 接受词表 ID 或别名，也允许查询尚无兼容性记录的模型；明确不兼容项被排除，未知项仍标记未知。`verified_only: true` 需要指定模型，且只返回该模型的已验证条目。当前内容没有具体模型验证记录，因此“仅已验证”不会产生结果。游标绑定完整查询、筛选、每页数量与内容版本，条件改变后应从第一页开始。
 
 首页的用途与画风可多选，模型名称可填写；地址会保存关键词、各筛选维度、每页数量与分页游标，刷新、分享和浏览器前进后退均可恢复。卡片“复制原文”按需读取对应模板；详情提供默认值、实时变量校验、原文与填写后复制。若有独立负面模板，正向与负面分别展示和复制。剪贴板受限时会选择文本，供用户手动复制。
 

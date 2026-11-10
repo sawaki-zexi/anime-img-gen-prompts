@@ -2,6 +2,8 @@
 
 发布配置在 `release/production.json`，保留已创建的 Site `appgprj_6af28af93d9081918cccb09ace648204`。期望来源为 `https://anime-prompt-atelier.memorablestone1.chatgpt.site`，MCP 路径为 `/api/mcp`，健康检查为 `/health`。配置中的地址是发布目标；实际可达性、公开权限、平台版本及预算结果以 [验收记录](validation/issue-5-release.md) 为准。
 
+2026-11-10 已完成公开实验版部署：七条正式内容、插件 0.1.1、匿名端点与 ZIP 下载、真实 Git 安装、旧安装读取新内容、实际平台回退/恢复和受控长测均有记录。桌面端安装尚未验证，不能把当前状态称为所有 v1 门槛均完成。
+
 普通用户只访问公开画廊或安装发布插件，不需要源码仓库、Node.js、本地 MCP、认证密钥或后台进程。以下命令仅供维护者使用。
 
 ## 两阶段发布

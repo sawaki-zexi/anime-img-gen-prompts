@@ -5,5 +5,5 @@
   "hosting": "Sites / Cloudflare Worker ESM",
   "account": "Existing connected Sites account; managed by the owner",
   "budget": "Use the existing platform allocation; no paid upgrade is authorized by this configuration",
-  "status": "candidate; live availability must be recorded separately"
+  "status": "public experimental distribution; verified deployment and client limits are recorded in docs/validation/issue-5-release.md"
 }

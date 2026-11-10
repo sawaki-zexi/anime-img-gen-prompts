@@ -1,0 +1,136 @@
+{
+  "checked_at": "2026-11-10T04:12:07.803Z",
+  "cli": "codex-cli 0.165.0",
+  "model": "gpt-6.1-sol",
+  "plugin_version": "0.1.0",
+  "plugin_source_commit": "a8e4abd4349646f1813df0c93fb01a582d57254a",
+  "catalog_revision": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c",
+  "installed_once": true,
+  "public_https": true,
+  "local_content_repo": false,
+  "local_server": false,
+  "native_image_generation": "disabled; actual native image handoff separately recorded",
+  "original_user_configuration_and_auth_unchanged": true,
+  "temporary_auth_removed": true,
+  "installed_configuration_unchanged": true,
+  "cases": [
+    {
+      "scenario": "public-librarian-avatar",
+      "kind": "positive",
+      "activated": true,
+      "retrieved_ids": [
+        "windchime-librarian-avatar"
+      ],
+      "rendered": 1,
+      "trace_structure_passed": true,
+      "violations": [],
+      "handoff_matches_rendered": false,
+      "final_contains_rendered_prompt": true,
+      "final_contains_rendered_negative": true,
+      "calls": [
+        {
+          "tool": "search_prompts",
+          "arguments": {
+            "query": "清透 水彩 头像",
+            "limit": 3
+          },
+          "ok": true,
+          "catalog_revision": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c"
+        },
+        {
+          "tool": "get_prompt",
+          "arguments": {
+            "id": "windchime-librarian-avatar",
+            "expected_revision": "sha256:99e2615078baf919ea25c04f55e7f6e4042d8f54fdf57c56e4a5bdfd9992755f",
+            "include_examples": true
+          },
+          "ok": true,
+          "catalog_revision": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c"
+        },
+        {
+          "tool": "render_prompt",
+          "arguments": {
+            "id": "windchime-librarian-avatar",
+            "expected_revision": "sha256:99e2615078baf919ea25c04f55e7f6e4042d8f54fdf57c56e4a5bdfd9992755f",
+            "variables": {
+              "subject": "an adult anime librarian with a short chestnut bob, round gold-rimmed glasses and warm hazel eyes"
+            }
+          },
+          "ok": true,
+          "catalog_revision": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c"
+        }
+      ],
+      "project": 0,
+      "cli_exit_code": 0,
+      "fresh_thread_id": "01a1c3a6-eb17-7133-9aa8-8e32a6d1cc87",
+      "host_skill_read_limit": true,
+      "manual_review": "passed: source exists, user intent retained, complete rendered text delivered, no image-generation claim",
+      "final_text_sha256": "4e0a4719602b9e065f8a628c1c22b630de41e8bc4103031d18fcd543c10858a7"
+    },
+    {
+      "scenario": "public-seaside-wallpaper",
+      "kind": "positive",
+      "activated": true,
+      "retrieved_ids": [
+        "seaside-watercolor-station"
+      ],
+      "rendered": 1,
+      "trace_structure_passed": true,
+      "violations": [],
+      "handoff_matches_rendered": false,
+      "final_contains_rendered_prompt": true,
+      "final_contains_rendered_negative": true,
+      "calls": [
+        {
+          "tool": "search_prompts",
+          "arguments": {
+            "query": "水彩 海边车站 横向 桌面壁纸",
+            "limit": 3
+          },
+          "ok": true,
+          "catalog_revision": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c"
+        },
+        {
+          "tool": "search_prompts",
+          "arguments": {
+            "query": "海边",
+            "styles": [
+              "watercolor"
+            ],
+            "limit": 3
+          },
+          "ok": true,
+          "catalog_revision": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c"
+        },
+        {
+          "tool": "get_prompt",
+          "arguments": {
+            "id": "seaside-watercolor-station",
+            "expected_revision": "sha256:39d50d74871ce8cd637343e0dfc80dc474c30fa36ac6dd60bd04ec09e67e094a",
+            "include_examples": true
+          },
+          "ok": true,
+          "catalog_revision": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c"
+        },
+        {
+          "tool": "render_prompt",
+          "arguments": {
+            "id": "seaside-watercolor-station",
+            "expected_revision": "sha256:39d50d74871ce8cd637343e0dfc80dc474c30fa36ac6dd60bd04ec09e67e094a",
+            "variables": {}
+          },
+          "ok": true,
+          "catalog_revision": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c"
+        }
+      ],
+      "project": 1,
+      "cli_exit_code": 0,
+      "fresh_thread_id": "01a1c3a7-6ae8-74e3-9483-6ce430bb17bd",
+      "host_skill_read_limit": true,
+      "manual_review": "passed: source exists, user intent retained, complete rendered text delivered, no image-generation claim",
+      "final_text_sha256": "e754f0c5580e9af3fd47816ac64d023015ea4875aaa0457d9ca334eb907cd8ef"
+    }
+  ],
+  "support_status": "experimental; this two-case production smoke does not replace the full evaluation or desktop verification",
+  "review_note": "Two production smoke requests only; not a new 12-case host qualification. Prior full evaluation remains separately recorded. Skill shell reads remain blocked by host policy; no permissions were loosened."
+}

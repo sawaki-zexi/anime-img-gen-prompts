@@ -1,0 +1,30 @@
+{
+  "checked_at": "2026-11-10T04:24:05.170Z",
+  "origin": "https://anime-prompt-atelier.memorablestone1.chatgpt.site",
+  "viewports": [
+    {
+      "route": "/",
+      "width": 1280,
+      "overflow": false
+    },
+    {
+      "route": "/install/",
+      "width": 360,
+      "overflow": false,
+      "has_commands": true,
+      "download": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/downloads/anime-prompt-atelier-0.1.1.zip"
+    },
+    {
+      "route": "/prompts/windchime-librarian-avatar/",
+      "width": 360,
+      "expanded_generation_record": true,
+      "overflow": false,
+      "document_width": 360,
+      "viewport": 360,
+      "source_width": 324,
+      "source_scroll_width": 324,
+      "title": "风铃下的图书管理员 ✦"
+    }
+  ],
+  "runtime_errors": []
+}
