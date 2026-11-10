@@ -2,9 +2,9 @@
 
 看图片，找到动漫风格提示词，填入自己的主角，再复制到图像生成工具。
 
-目前收录六条独立生成的真实样例，覆盖头像、角色立绘、场景、壁纸、漫画、插画、表情包与贴纸。每条的原始提示词、实际生成图、变量与已知生成条件共同保存在仓库中；未知的底层模型、版本和种子如实保留为未知。插件已有可复现的测试包与隔离安装流程，当前标记本地实验；公开托管与正式分发由 [Issue #5](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/5) 推进。
+目前收录六条独立生成的真实样例，覆盖头像、角色立绘、场景、壁纸、漫画、插画、表情包与贴纸。每条的原始提示词、实际生成图、变量与已知生成条件共同保存在仓库中；未知的底层模型、版本和种子如实保留为未知。插件仍按真实客户端结果标记实验；公开托管与正式分发由 [Issue #5](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/5) 推进，实际状态见 [发布验收记录](docs/validation/issue-5-release.md)。
 
-画廊的 `/install/` 是插件接入入口。普通用户目前可直接复制提示词；尚无生产服务与公开安装包，不需先安装本地运行时。真实客户端支持范围、维护者打包和两个项目评测见 [插件安装说明](docs/plugin-installation.md) 与 [实际验证记录](docs/validation/issue-4-plugin.md)。
+画廊的 `/install/` 是插件接入入口：第一阶段只提供画廊回退，生产服务验证后第二阶段才展示实际 ZIP 与已发布 marketplace 步骤。普通用户不需要克隆仓库、安装本地运行时或启动服务。真实客户端支持范围、维护者打包和两个项目评测见 [插件安装说明](docs/plugin-installation.md) 与 [实际验证记录](docs/validation/issue-4-plugin.md)。
 
 ## 本地运行
 
@@ -25,7 +25,7 @@ npm run dev
 npm run dev:mcp
 ```
 
-工具端点为 `http://127.0.0.1:3333/mcp`，健康检查为 `http://127.0.0.1:3333/health`。这是开发用本地服务，默认仅监听回环地址，并校验 Host 和 Origin。公开 HTTPS 托管及部署配置属于后续发布任务。
+工具端点为 `http://127.0.0.1:3333/mcp`，健康检查为 `http://127.0.0.1:3333/health`。这是开发用本地服务，默认仅监听回环地址，并校验 Host 和 Origin。生产 Worker 使用相同 Fetch 核心，路径为 `/api/mcp`；域名、运行限制和两阶段发布见 [发布说明](docs/release.md)。
 
 常用命令：
 
@@ -40,6 +40,9 @@ npm run dev:mcp
 | `npm run dev` | 先构建内容，再启动画廊开发服务器 |
 | `npm run dev:mcp` | 先构建内容，再启动 MCP |
 | `npm run build` | 构建内容与静态站点到 `dist/` |
+| `npm run release:build -- --out …` | 隔离构建同快照画廊、MCP、真实图片与版本 manifest，产生自包含 Worker；分发阶段须提供已验证 release 插件 |
+| `npm run release:verify -- --dir …` | 离线复核保留产物的 Worker、manifest、内容摘要与同一 Site 身份 |
+| `npm run benchmark -- --seconds 3 --warmup 1` | 短烟测；完整受控验收另用 Docker/性能工作流，常规 check 不运行五分钟压测 |
 | `npm run preview` | 在 5173 端口预览已构建站点；先停止占用该端口的开发服务器 |
 | `npm run start:mcp` | 从已经生成的快照启动 MCP，不重新构建内容 |
 | `npm run typecheck` | Astro 与 TypeScript 类型检查 |
@@ -91,7 +94,10 @@ src/content/build.ts               校验、图片解码、稳定版本计算
 src/lib/schema.ts                  共用数据及工具契约
 src/lib/catalog.ts                 不依赖 Node 的确定性检索、读取、单次字面替换
 src/pages/                         Astro 静态画廊与详情
-src/server/                        Node Streamable HTTP MCP
+src/server/                        共用工具/Fetch核心、Node与Worker适配、快照校验
+scripts/build-release.ts            两阶段不可变发布构建
+release/production.json             真实Site身份与目标来源；不含凭据
+benchmarks/                        不公开的千条数据和受控五分钟压测
 tests/                             内容边界、真实传输与静态产物一致性
 ```
 
@@ -104,3 +110,5 @@ tests/                             内容边界、真实传输与静态产物一
 新增用途、画风或模型时先在 `taxonomy.json` 添加稳定 ID、中文名称及别名，再在条目里引用。网页筛选项与 MCP facets 都从词表构建，不需要修改页面或工具契约。模型适用性必须引用模型词表，并按真实证据填写 `verified`、`declared`、`unknown` 或 `incompatible`，不能从生成工具名称推断底层模型支持。归档时设置 `status: archived`，可填 `archive_note`；`related_ids` 中的替代项必须为当前已发布条目。
 
 基础流程对应 [Issue #2](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/2)，多用途画廊对应 [Issue #3](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/3)；完整产品约束见 [开发规格](docs/specs/anime-prompt-library-v1.md) 与 [实施拆分](docs/plans/v1-implementation.md)。
+
+生产部署、同一安装读取更新、失败发布回退、日志隐私和受控性能步骤见 [发布、更新与回退](docs/release.md)。自动测试同时覆盖两代 MCP 协议、限流与失败、已连接客户端切换和坏快照回退、千条唯一图片 URL 的真实 Chrome 资源请求；实际公开安装、平台权限、生图成功和第三方目录状态分别记录，不由测试代替。

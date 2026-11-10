@@ -1,0 +1,9 @@
+{
+  "project_id": "appgprj_6af28af93d9081918cccb09ace648204",
+  "origin": "https://anime-prompt-atelier.memorablestone1.chatgpt.site",
+  "mcp_path": "/api/mcp",
+  "hosting": "Sites / Cloudflare Worker ESM",
+  "account": "Existing connected Sites account; managed by the owner",
+  "budget": "Use the existing platform allocation; no paid upgrade is authorized by this configuration",
+  "status": "candidate; live availability must be recorded separately"
+}

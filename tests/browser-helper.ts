@@ -9,7 +9,7 @@ import path from 'node:path';
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 type Pending = { resolve: (value: any) => void; reject: (reason: Error) => void; timer: ReturnType<typeof setTimeout> };
 
-export async function serve(directory: string) {
+export async function serve(directory: string, aliases = new Map<string, string>()) {
   const requests: string[] = [];
   const root = path.resolve(directory);
   const types: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.json': 'application/json', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
@@ -17,7 +17,7 @@ export async function serve(directory: string) {
     try {
       const pathname = decodeURIComponent(new URL(request.url!, 'http://127.0.0.1').pathname);
       requests.push(pathname);
-      const filename = path.resolve(root, `.${pathname.endsWith('/') ? `${pathname}index.html` : pathname}`);
+      const filename = path.resolve(root, aliases.get(pathname) ?? `.${pathname.endsWith('/') ? `${pathname}index.html` : pathname}`);
       if (path.relative(root, filename).startsWith('..') || path.isAbsolute(path.relative(root, filename))) throw new Error('Outside fixture');
       const bytes = await readFile(filename);
       response.writeHead(200, { 'Content-Type': types[path.extname(filename)] ?? 'application/octet-stream' });

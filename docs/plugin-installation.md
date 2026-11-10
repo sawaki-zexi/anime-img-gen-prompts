@@ -1,6 +1,6 @@
 # 插件安装与验证
 
-当前插件 **0.1.0 为本地实验分发**。没有已开放的生产 MCP 地址、公开安装 ZIP、Git marketplace 发行或官方目录上架记录。普通用户先从画廊复制提示词；公开托管和正式发布属于 [Issue #5](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/5)。画廊的 `/install/` 页面始终展示真实接入状态，不提供无效的一键安装。
+当前插件 **0.1.0 按实测状态保留实验支持**。公开 MCP、下载、Git marketplace 和客户端的最新实际结果见 [Issue #5 发布记录](validation/issue-5-release.md)。画廊的 `/install/` 页面按两阶段产物展示入口：首次服务候选不提供安装链接，生产 preflight 通过后才把真实 ZIP 加入同快照分发候选；Git 安装步骤另须真实 ref 发布及隔离验证。尚未进入官方公共目录。
 
 正式普通用户流程是从届时公布且已验证的分发源安装一次，启用后开启新会话，在其他项目中直接描述头像、立绘、场景、壁纸、漫画、表情包或贴纸需求。远程托管服务不要求用户安装 Node.js、Python、克隆内容仓库或启动本地常驻进程，也不要求申请生图 API Key。插件本身不生图；有宿主图像工具时交接，无工具时交付完整提示词。
 
@@ -40,7 +40,7 @@
 
 ZIP 以插件根目录打包；marketplace 路径相对 marketplace 根目录。文件排序、ZIP 时间戳与字节固定，Skill 与 SVG 输入显式规范化为 LF，同一配置得到同一 SHA-256；局部 Git 属性也仅把插件目录与图标设为 LF。包内不包含提示词库正文、示例图、运行时、hooks、后台进程或密钥；内容由远程服务按需返回。输出目录必须尚不存在，脚本不会覆盖已有文件。
 
-发布构建使用默认 release 模式：必须给出公开 HTTPS URL，拒绝回环、私网、保留示例域名、凭据、查询与片段；还会实际验证远程三工具与画廊的内容修订一致，失败则不生成发布包。当前没有可填入的生产地址，**不要把测试包改名后发布**。
+发布构建使用默认 release 模式：必须给出公开 HTTPS URL，拒绝回环、私网、保留示例域名、凭据、查询与片段；还会实际验证远程三工具、画廊及健康检查的内容修订一致，失败则不生成发布包。包的 `catalog_revision_at_build` 和 `release-preflight.json` 记录构建时的真实服务版本；后续查询仍使用远程当前内容。不要把测试包改名后发布。首次服务如何先上线、再生成 ZIP，以及同安装更新与回退步骤见 [发布说明](release.md)。
 
 ```powershell
 # 仅在真实托管服务与画廊已经存在时；这两项由发布任务提供。
@@ -59,7 +59,7 @@ npm run plugin:probe -- --package artifacts/plugin-evaluation --state artifacts/
 
 `plugin:probe` 使用现有 CLI，创建专用配置和两个项目，实际执行 `plugin marketplace add`、`plugin add`、`plugin list`，再由官方 app-server 的 `initialize`、`skills/list`、`fs/readFile` 核对用户级 Skill 的真实路径与正文哈希，并查询 `mcpServerStatus/list`。有可用服务时记录三个工具的真实发现；服务未运行时明确记录工具未连接。报告写入指定独立目录，不读取或复制用户认证，不改现有用户配置或插件缓存。子进程只使用专用 `CODEX_HOME`，移除父桌面聊天的工具路由和会话身份，保留权限限制。可用 `--codex <原生可执行文件或codex.js>` 指定已安装 CLI；不安装或升级 CLI。
 
-真实验证过的最短 CLI 安装动作是将**生成产物的 marketplace 根目录**传给 `codex plugin marketplace add`，再执行 `codex plugin add anime-prompt-atelier@anime-atelier-plugins`；安装探针已代为运行这两个动作。这仅是维护者测试路径。仓库根当前没有可供普通用户直接安装的生产 marketplace，不要把仓库 Git URL当作已发布安装源。
+真实验证过的本地 CLI 安装动作是将**生成产物的 marketplace 根目录**传给 `codex plugin marketplace add`，再执行 `codex plugin add anime-prompt-atelier@anime-atelier-plugins`；安装探针已代为运行这两个动作。这是维护者测试路径。公开 Git 分发计划使用 `plugin-release` 独立 ref；只有实际发布并验证后安装页才列出它，不要把内容仓库根目录当 marketplace。
 
 官方 Skill 校验也已执行；Windows 中文环境使用 `python -X utf8 <skill-creator目录>/scripts/quick_validate.py <Skill目录>`，不修改用户 Python 设置。该工具验证格式，不能代替实际行为评测。[Skill 编写说明](https://developers.openai.com/plugins/build/skills)
 

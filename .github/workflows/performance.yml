@@ -1,0 +1,40 @@
+name: Controlled performance acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'codex/**']
+    paths: ['benchmarks/run-request.json']
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build the isolated fixture runtime
+        run: docker build --file benchmarks/Dockerfile --tag anime-prompt-benchmark .
+      - name: Record Docker and image identity
+        run: |
+          mkdir -p artifacts/performance
+          docker version > artifacts/performance/docker-version.txt
+          docker image inspect anime-prompt-benchmark > artifacts/performance/image.json
+          docker create --name anime-prompt-benchmark --cpus=2 --memory=2g --memory-swap=2g --network=none --env BENCHMARK_SOURCE_REVISION=${{ github.sha }} --volume "$PWD/artifacts/performance:/results" anime-prompt-benchmark
+          docker inspect anime-prompt-benchmark > artifacts/performance/container.json
+      - name: Verify cgroups and measure 20 concurrent clients for five minutes
+        run: docker start --attach anime-prompt-benchmark
+      - name: Stop the owned benchmark container
+        if: always()
+        run: docker rm --force anime-prompt-benchmark
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: performance-${{ github.sha }}
+          path: artifacts/performance/
+          if-no-files-found: error
+          retention-days: 30

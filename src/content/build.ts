@@ -5,6 +5,8 @@ import matter from 'gray-matter';
 import sharp from 'sharp';
 import { authoredPromptSchema, catalogSchema, taxonomySchema, type Catalog, type Prompt } from '../lib/schema.ts';
 import { createSearchCatalog, normalize, placeholderPattern, renderPrompt } from '../lib/catalog.ts';
+import { canonicalJson } from '../lib/revision.ts';
+export { canonicalJson } from '../lib/revision.ts';
 
 export interface BuildOptions {
   contentDir: string;
@@ -13,13 +15,6 @@ export interface BuildOptions {
   basePath?: string;
 }
 
-export function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
-  if (value !== null && typeof value === 'object') {
-    return `{${Object.entries(value).sort(([a], [b]) => a.localeCompare(b, 'en')).map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`).join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
 const hash = (value: string | Buffer) => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 
 async function markdownFiles(dir: string): Promise<string[]> {

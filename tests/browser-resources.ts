@@ -9,8 +9,8 @@ export function browserTestResources(t: Pick<TestContext, 'after'>) {
   t.after(() => cleanup.disposeAsync());
   return {
     fixture: () => fixture(cleanup),
-    async serve(directory: string) {
-      return cleanup.adopt(await serve(directory), server => server.close());
+    async serve(directory: string, aliases?: Map<string, string>) {
+      return cleanup.adopt(await serve(directory, aliases), server => server.close());
     },
     async browser(profile: string, launch: typeof Browser.launch = Browser.launch) {
       return cleanup.adopt(await launch(profile), browser => browser.close());

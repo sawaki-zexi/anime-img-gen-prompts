@@ -1,0 +1,8 @@
+node_modules
+dist
+artifacts
+.git
+.astro
+.worktrees
+.env
+.env.*

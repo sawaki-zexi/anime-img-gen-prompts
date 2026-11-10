@@ -8,15 +8,17 @@ import { readSearchParams } from '../src/lib/search-url.ts';
 import { runProcess } from './browser-helper.ts';
 import { browserTestResources } from './browser-resources.ts';
 import { catalog, fixture, projectRoot, prompt } from './helpers.ts';
+import type { Catalog } from '../src/lib/schema.ts';
+import { syntheticCatalog } from '../benchmarks/fixture.ts';
 
 const visibleIds = `Array.from(document.querySelectorAll('#prompt-grid [data-prompt-id]'), item => item.dataset.promptId)`;
 
-async function buildFixtureSite(files: Awaited<ReturnType<typeof fixture>>) {
+async function buildFixtureSite(files: Awaited<ReturnType<typeof fixture>>, suppliedCatalog?: Catalog) {
   await cp(path.join(projectRoot, 'src'), path.join(files.directory, 'src'), { recursive: true });
   for (const filename of ['astro.config.mjs', 'tsconfig.json', 'package.json']) await copyFile(path.join(projectRoot, filename), path.join(files.directory, filename));
   await mkdir(path.join(files.directory, 'generated'), { recursive: true });
   await symlink(path.join(projectRoot, 'node_modules'), path.join(files.directory, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
-  const built = await buildCatalog(files); await writeCatalog(built, files.directory);
+  const built = suppliedCatalog ?? await buildCatalog(files); await writeCatalog(built, files.directory);
   await runProcess(process.execPath, [path.join(projectRoot, 'node_modules/astro/bin/astro.mjs'), 'build', '--root', files.directory], files.directory);
   return built;
 }
@@ -73,6 +75,38 @@ test('real mobile browser follows keyboard filters, pagination, share URLs, deta
   await browser.wait(`document.querySelector('.copy-status').textContent.includes('已复制')`);
   assert.equal(server.requests.filter(value => value.startsWith('/data/prompts/')).length, 1);
   assert.deepEqual(browser.errors, []);
+});
+
+test('1000 synthetic records keep unique-image first-screen requests and template bodies bounded by the visible page', { timeout: 180000 }, async t => {
+  const resources = browserTestResources(t);
+  const files = await resources.fixture();
+  const synthetic = await syntheticCatalog(catalog);
+  await buildFixtureSite(files, synthetic);
+  const aliases = new Map<string, string>();
+  for (let index = 0; index < synthetic.prompts.length; index++) {
+    const source = catalog.prompts[index % catalog.prompts.length]!.examples[0]!;
+    for (const field of ['image', 'thumbnail'] as const) aliases.set(new URL(synthetic.prompts[index]!.examples[0]![field]).pathname, `.${new URL(source[field]).pathname}`);
+  }
+  const server = await resources.serve(path.join(files.directory, 'dist'), aliases);
+  const browser = await resources.browser(path.join(files.directory, 'chrome'));
+  await browser.viewport(1440);
+  await browser.send('Network.setCacheDisabled', { cacheDisabled: true });
+  // The SSR page already contains five cards. The restored query proves the large client index has initialized.
+  await browser.navigate(`${server.origin}/?q=fixture`, `${visibleIds}.length === 5 && document.querySelector('#applied-filters')?.textContent.includes('fixture') && document.querySelector('.hero-art')?.naturalWidth > 0`);
+  await browser.wait(`Array.from(document.querySelectorAll('#prompt-grid img')).filter(image => image.getBoundingClientRect().top < innerHeight).every(image => image.complete)`);
+  const firstScreenImages = [...new Set(server.requests.filter(value => value.endsWith('.webp')))];
+  assert.ok(firstScreenImages.length <= 6, `Expected hero + at most 5 card images, saw ${firstScreenImages.length}`);
+  assert.ok(firstScreenImages.every(value => value.includes('/images/benchmark/synthetic-fixture-')));
+  assert.equal(server.requests.filter(value => value.startsWith('/data/prompts/')).length, 0);
+  assert.equal(await browser.evaluate('document.querySelectorAll("#prompt-grid [data-prompt-id]").length'), 5);
+  assert.equal(await browser.evaluate('document.querySelector("#catalog-data").textContent.includes("effective_prompt")'), false);
+  await browser.send('Browser.grantPermissions', { origin: server.origin, permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'] }, false);
+  await browser.click('.card-copy'); await browser.wait(`document.querySelector('.card-copy-fallback textarea').value.length > 0 && /已复制|文本已选中/.test(document.querySelector('.copy-status').textContent)`);
+  assert.equal(server.requests.filter(value => value.startsWith('/data/prompts/')).length, 1);
+  await browser.click('#next-page'); await browser.wait(`${visibleIds}[0] === 'synthetic-fixture-0005'`);
+  assert.equal(await browser.evaluate('document.querySelectorAll("#prompt-grid [data-prompt-id]").length'), 5);
+  assert.deepEqual(browser.errors, []);
+  console.log(JSON.stringify({ fixture: 'synthetic; not published', total_records: 1000, viewport: '1440x950', first_screen_unique_image_requests: firstScreenImages.length, initial_body_requests: 0, after_one_copy_body_requests: 1, rendered_cards_per_page: 5, image_urls: 'unique per record; fixture server maps to reused real pixels; browser cache disabled' }));
 });
 
 test('real browser renders negative prompts, field limits, new taxonomy and archived routes using isolated content fixtures', { timeout: 120000 }, async t => {
