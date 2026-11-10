@@ -1,0 +1,13 @@
+interface:
+  display_name: "Anime Prompt Atelier · 动漫灵感工坊"
+  short_description: "Anime templates for characters, scenery, comics and stickers"
+  default_prompt: "Use $anime-prompt-atelier to find and fill an anime image prompt."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "anime-prompt-atelier"
+      description: "Search, read and render real anime prompt templates"
+      transport: "streamable_http"
+      url: "https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp"
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "anime-prompt-atelier": {
+      "type": "streamable-http",
+      "url": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp"
+    }
+  }
+}

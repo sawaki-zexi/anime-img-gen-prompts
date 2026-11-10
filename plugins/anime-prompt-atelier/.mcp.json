@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "anime-prompt-atelier": {
+      "type": "http",
+      "url": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp"
+    }
+  }
+}

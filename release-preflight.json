@@ -1,0 +1,13 @@
+{
+  "catalog_revision": "sha256:d419ce74d5f54b2e1d893cc02f31b42ecaff5daa9dda1b6151eec68169397831",
+  "real_id": "mint-watercolor-avatar",
+  "prompt_revision": "sha256:368aa838aeaac1fdc95e3713be5073d6ae5070a65ac287b39a3e55492e976d31",
+  "tools": [
+    "get_prompt",
+    "render_prompt",
+    "search_prompts"
+  ],
+  "gallery_status": 200,
+  "health_status": 200,
+  "authentication": "anonymous; no cookies or credentials sent"
+}

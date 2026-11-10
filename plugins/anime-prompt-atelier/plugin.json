@@ -1,0 +1,32 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "anime-prompt-atelier",
+  "version": "0.1.0",
+  "description": "按动漫创作目标检索有真实示例的模板，填写变量并交给可用的生图工具。",
+  "author": {
+    "name": "sawaki-zexi"
+  },
+  "homepage": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/",
+  "repository": "https://github.com/sawaki-zexi/anime-img-gen-prompts",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Anime Prompt Atelier · 动漫灵感工坊",
+        "shortDescription": "Anime templates for characters, scenery, comics and stickers",
+        "longDescription": "按动漫创作目标检索有真实示例的模板，填写变量并交给可用的生图工具。",
+        "developerName": "sawaki-zexi",
+        "category": "Design",
+        "capabilities": [
+          "Read"
+        ],
+        "websiteURL": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/",
+        "brandColor": "#778AF8",
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/icon.svg",
+        "defaultPrompt": [
+          "画一张水彩动漫头像，主角是戴圆眼镜的成年旅行者。"
+        ]
+      }
+    }
+  }
+}

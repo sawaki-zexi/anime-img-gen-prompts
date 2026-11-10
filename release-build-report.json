@@ -1,0 +1,20 @@
+{
+  "mode": "release",
+  "name": "anime-prompt-atelier",
+  "version": "0.1.0",
+  "mcp_url": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp",
+  "gallery_url": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/",
+  "catalog_revision_at_build": "sha256:d419ce74d5f54b2e1d893cc02f31b42ecaff5daa9dda1b6151eec68169397831",
+  "archive": "anime-prompt-atelier-0.1.0.zip",
+  "archive_sha256": "ffa746f98ed9bc0413852402c4aa408055d810b3b859e4b2ca8ebfc07f6760b6",
+  "files": {
+    "plugin.json": "ee0b5ddd845d4e1f6697353932e068f0d98a566482ace35944782f7aaf0d8aed",
+    "mcp.json": "6d0e0d2a6f06f70ff42ad996f4836b3e0e76b46a63ce436fc0d7e9b2c69cf9d7",
+    ".codex-plugin/plugin.json": "5dc2d9efebf4ea323b8a8792c7ac5102aa19885101d2c86f76caebff1259cd41",
+    ".mcp.json": "f1a2b9ce307b7d411191ffcac89cdb00198d203fa0222cb09fd7baa0d66c7e1c",
+    "assets/icon.svg": "aeb81193fdf6e3f7b5a3a09b3b3f95642c69b33e754630487e04432eddf40bc6",
+    "skills/anime-prompt-atelier/SKILL.md": "22267a5a9851390696446c5a34c1acdc8cd905dec8f643067686b0daf9fcc1fe",
+    "skills/anime-prompt-atelier/agents/openai.yaml": "02311eca2bf499f6da43669e3403e7129b46cb0296979c94389897dcfd402417",
+    "build-info.json": "6914a47ec59d09664232e7a142b36e81213d20013e93b589161fd23792ebbba1"
+  }
+}
