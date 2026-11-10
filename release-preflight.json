@@ -1,7 +1,7 @@
 {
-  "catalog_revision": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c",
-  "real_id": "mint-watercolor-avatar",
-  "prompt_revision": "sha256:368aa838aeaac1fdc95e3713be5073d6ae5070a65ac287b39a3e55492e976d31",
+  "catalog_revision": "sha256:91f4117a1f51cdaf807e5fc0caf8e6ee6c9205923849e26e25410e6c6266de32",
+  "real_id": "rough-crayon-character-redraw",
+  "prompt_revision": "sha256:fe9d099c02f3c48456b133b7e597f30d55de1d70a653dc531e0b59330ff32bf7",
   "tools": [
     "get_prompt",
     "render_prompt",

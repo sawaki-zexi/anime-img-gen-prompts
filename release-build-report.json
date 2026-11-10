@@ -1,20 +1,20 @@
 {
   "mode": "release",
   "name": "anime-prompt-atelier",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "mcp_url": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp",
   "gallery_url": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/",
-  "catalog_revision_at_build": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c",
-  "archive": "anime-prompt-atelier-0.1.1.zip",
-  "archive_sha256": "2ad6726d589a6a85a39fece7f7598a40bb82e7831daed7fb3c465a5b0e1cdb32",
+  "catalog_revision_at_build": "sha256:91f4117a1f51cdaf807e5fc0caf8e6ee6c9205923849e26e25410e6c6266de32",
+  "archive": "anime-prompt-atelier-0.1.2.zip",
+  "archive_sha256": "4c144a36f9e81be4be1f82bca19a9404e233f88e100e9896567a8b3456400907",
   "files": {
-    "plugin.json": "02e3b9d94ea57406cc44551092658ff083608d0eedc27a7841ec4f07812a7576",
+    "plugin.json": "3de6f55c82dd104c42bcf7d81d71af7db66dba57c8ee98045a9dd3db73670643",
     "mcp.json": "6d0e0d2a6f06f70ff42ad996f4836b3e0e76b46a63ce436fc0d7e9b2c69cf9d7",
-    ".codex-plugin/plugin.json": "5b454bea41f3d37c30178e6124c0c3ada203264d03d352d9e21c4b83eaf878f2",
+    ".codex-plugin/plugin.json": "b3c86fdc864f704e8dfa3102cbb2ef37bf140af3792b5a16cd5e968272e2c412",
     ".mcp.json": "f1a2b9ce307b7d411191ffcac89cdb00198d203fa0222cb09fd7baa0d66c7e1c",
     "assets/icon.svg": "aeb81193fdf6e3f7b5a3a09b3b3f95642c69b33e754630487e04432eddf40bc6",
-    "skills/anime-prompt-atelier/SKILL.md": "22267a5a9851390696446c5a34c1acdc8cd905dec8f643067686b0daf9fcc1fe",
-    "skills/anime-prompt-atelier/agents/openai.yaml": "02311eca2bf499f6da43669e3403e7129b46cb0296979c94389897dcfd402417",
-    "build-info.json": "41e4287dffdace26ff4c45274a21572330ed06d31eef221c82ac482b9992de73"
+    "skills/anime-prompt-atelier/SKILL.md": "a098060b0bf2ed9015e5fb0b20f862b3c581c138b3e6e8e9019227c464448186",
+    "skills/anime-prompt-atelier/agents/openai.yaml": "d80653fdff94977fd23e6827caaea17d50910d4ab0f7bd04cb341dd478dbc0fe",
+    "build-info.json": "e856d07ca607895ad63d257a01f50f20a32f823653b1ed59778ff1102c724af3"
   }
 }

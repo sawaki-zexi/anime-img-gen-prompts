@@ -1,6 +1,6 @@
 interface:
   display_name: "Anime Prompt Atelier · 动漫灵感工坊"
-  short_description: "Anime templates for characters, scenery, comics and stickers"
+  short_description: "Anime redraw prompts with supplied style examples"
   default_prompt: "Use $anime-prompt-atelier to find and fill an anime image prompt."
 dependencies:
   tools:

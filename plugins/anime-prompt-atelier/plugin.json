@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "anime-prompt-atelier",
-  "version": "0.1.1",
-  "description": "按动漫创作目标检索有真实示例的模板，填写变量并交给可用的生图工具。",
+  "version": "0.1.2",
+  "description": "检索动漫角色重绘提示词与收录配图，保留原文和参考图要求，再交给可用的图像工具。",
   "author": {
     "name": "sawaki-zexi"
   },
@@ -12,8 +12,8 @@
     "com.openai": {
       "interface": {
         "displayName": "Anime Prompt Atelier · 动漫灵感工坊",
-        "shortDescription": "Anime templates for characters, scenery, comics and stickers",
-        "longDescription": "按动漫创作目标检索有真实示例的模板，填写变量并交给可用的生图工具。",
+        "shortDescription": "Anime redraw prompts with supplied style examples",
+        "longDescription": "检索动漫角色重绘提示词与收录配图，保留原文和参考图要求，再交给可用的图像工具。",
         "developerName": "sawaki-zexi",
         "category": "Design",
         "capabilities": [
@@ -24,7 +24,7 @@
         "composerIcon": "./assets/icon.svg",
         "logo": "./assets/icon.svg",
         "defaultPrompt": [
-          "画一张水彩动漫头像，主角是戴圆眼镜的成年旅行者。"
+          "把我提供的原角色参考图重绘成天然呆 Q 版头像，保留原角色设计。"
         ]
       }
     }
