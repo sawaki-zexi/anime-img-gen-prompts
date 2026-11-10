@@ -30,20 +30,18 @@ const { title = 'Anime Prompt Atelier · 动漫灵感工坊', description = '看
       <div class="header-inner">
         <a class="brand" href={sitePath()} aria-label="动漫灵感工坊首页">
           <span class="brand-mark" aria-hidden="true">✦</span>
-          <span><span class="brand-name">Anime <em>Atelier</em></span><span class="brand-sub">动漫灵感工坊</span></span>
+          <span class="brand-name">动漫灵感工坊</span>
         </a>
         <nav aria-label="主导航">
-          <a class="btn btn-ghost btn-sm nav-gallery" href={sitePath('#gallery')}>探索画廊</a>
-          <a class="btn btn-ghost btn-sm nav-install" href={sitePath('install/')}>插件接入</a>
-          <a class="btn btn-ghost btn-sm nav-source" href="https://github.com/sawaki-zexi/anime-img-gen-prompts" target="_blank" rel="noreferrer">GitHub ↗</a>
+          <a class="btn btn-ghost btn-sm nav-gallery" href={sitePath('#gallery')}>画廊</a>
+          <a class="btn btn-ghost btn-sm nav-install" href={sitePath('install/')}>Agent 接入</a>
           <button class="btn btn-circle btn-ghost btn-sm theme-toggle" type="button" aria-label="切换到深色主题" title="切换明暗主题"><span aria-hidden="true">☾</span></button>
         </nav>
       </div>
     </header>
     <main id="main"><slot /></main>
     <footer class="site-footer">
-      <div><span class="footer-star" aria-hidden="true">✦</span> 留一点想象，给下一张画。</div>
-      <div class="footer-meta"><span>{catalog.prompts.length} 条公开模板</span><span title={catalog.catalog_revision}>内容版本 {catalog.catalog_revision.slice(7, 15)}</span><a href={sitePath('catalog.json')}>公开内容数据 ↗</a></div>
+      <a href="https://github.com/sawaki-zexi/anime-img-gen-prompts" target="_blank" rel="noreferrer">GitHub ↗</a>
     </footer>
     <script>
       import { animate } from 'motion/mini';

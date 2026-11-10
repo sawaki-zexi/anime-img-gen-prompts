@@ -259,3 +259,65 @@ nav { display: flex; align-items: center; gap: 12px; }
 .install-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
 .install-info h2 { font-size: 21px; }
 @media (max-width: 760px) { .nav-source { display: none; } .gallery-plugin-note { padding: 22px; gap: 12px; flex-wrap: wrap; } .gallery-plugin-note > div { min-width: 210px; } .gallery-plugin-note > a { margin-left: 35px; } .install-heading h1 { font-size: 29px; } .install-status, .install-info { padding: 24px 22px; } .install-status h2, .install-clients h2 { font-size: 21px; } .install-actions { gap: 6px; } .client-status-list > div { grid-template-columns: 1fr; gap: 9px; padding: 20px 0; } .install-detail-grid { grid-template-columns: 1fr; } }
+
+.header-inner { min-height: 76px; }
+.brand-name { font-size: 21px; letter-spacing: 0; }
+.gallery-hero { height: clamp(210px, 22vw, 300px); }
+.hero-inner { height: 100%; display: flex; align-items: center; padding-top: 0; }
+.hero-inner h1 { margin: 0; font-size: clamp(28px, 3vw, 38px); }
+.search-surface .btn { min-width: 84px; }
+.filter-group { display: flex; align-items: baseline; gap: 18px; margin-bottom: 12px; }
+.filter-group legend { float: left; flex-shrink: 0; margin: 9px 0 0; }
+.filter-options { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-top: 18px; }
+.advanced-filters { flex: 1; min-width: 0; }
+.advanced-filters > summary { width: fit-content; padding: 4px 0; font-size: 12px; color: var(--muted); }
+.advanced-filters .filter-tools { margin-top: 16px; }
+.gallery-section { padding-top: 25px; }
+.section-heading { justify-content: flex-end; margin-bottom: 16px; }
+.count-badge { margin: 0; font-size: 11px; padding: 12px; }
+.applied-filters { margin: 0 0 16px; }
+.card-heading { margin-bottom: 12px; }
+.card-actions { margin-top: 18px; }
+.empty-state { min-height: 190px; padding: 28px; }
+.site-footer { justify-content: center; padding-block: 20px; }
+.site-footer a { color: var(--muted); }
+.detail-heading h1 { margin: 0; }
+.panel-heading { margin-bottom: 15px; }
+.panel-heading h2 { margin: 0; }
+.source-card > summary, .install-advanced > summary { color: var(--muted); font-size: 13px; font-weight: 800; }
+.source-card[open] > summary, .install-advanced[open] > summary { color: var(--color-primary); margin-bottom: 14px; }
+.source-card .generation-facts dd { overflow-wrap: anywhere; }
+.install-shell { max-width: 900px; min-height: calc(100vh - 140px); padding-top: 38px; }
+.install-shell > h1 { font-size: 30px; font-weight: 900; margin: 0 0 8px; }
+.support-status { font-size: 12px; color: var(--muted); margin: 0 0 26px; }
+.install-status { background: var(--color-base-100); }
+.install-status h2 { margin: 0 0 18px; font-size: 20px; }
+.install-status pre { max-width: 100%; padding: 18px; border-radius: 14px; background: var(--page-bg); white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
+.install-status p { margin-bottom: 0; }
+.install-advanced { margin-top: 22px; padding: 24px 30px; }
+.install-advanced p { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.install-advanced a { color: var(--color-primary); }
+@media (max-width: 760px) {
+  .header-inner { min-height: 68px; gap: 10px; padding: 12px 17px; }
+  .brand { gap: 6px; }
+  .brand-mark { width: 30px; height: 30px; font-size: 23px; border-radius: 11px; }
+  .brand-name { font-size: 16px; }
+  nav { gap: 1px; }
+  nav .btn { padding-inline: 7px; }
+  .nav-gallery { display: inline-flex; }
+  .gallery-hero { height: 200px; }
+  .hero-inner h1 { font-size: 28px; }
+  .search-surface .btn { min-width: 62px; }
+  .filter-group { display: block; }
+  .filter-group legend { float: none; margin: 0 0 9px; }
+  .filter-tools { margin-top: 12px; }
+  .filter-options > .btn { font-size: 11px; }
+  .gallery-section { padding-top: 20px; }
+  .count-badge { margin: 0; }
+  .detail-heading h1 { font-size: 26px; }
+  .install-shell { padding-top: 28px; }
+  .install-shell > h1 { font-size: 27px; }
+  .install-status { padding: 24px 20px; }
+  .install-status pre { padding: 14px; font-size: 11px; }
+  .install-advanced { padding: 22px 20px; }
+}

@@ -1,36 +1,26 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { catalog, sitePath } from '../lib/site.ts';
+import { catalog } from '../lib/site.ts';
 import { readReleasePresentation } from '../lib/release.ts';
 const repository = 'https://github.com/sawaki-zexi/anime-img-gen-prompts';
 const release = await readReleasePresentation(catalog.catalog_revision);
+const marketplaceRef = release?.marketplace_ref ?? 'plugin-release';
 ---
-<Layout title="把灵感带到其他项目 · Anime Prompt Atelier" description="查看动漫灵感工坊的插件安装状态、真实支持范围与测试材料。">
+<Layout title="Agent 接入 · 动漫灵感工坊" description="动漫灵感工坊的 Codex CLI 安装方式与支持状态。">
   <div class="page-shell install-shell">
-    <a class="back-link" href={sitePath()}>← 返回灵感画廊</a>
-    <div class="install-heading"><span class="eyebrow">TAKE THE ATELIER WITH YOU</span><h1>在别的项目里，<br />也能接住这份灵感。</h1><p>当前收录三组用户提供的角色重绘提示词与配图。带上原角色参考图，让 Agent 按适用条件检索，再交给可用的生图工具。</p></div>
-    <section class="card install-status" aria-labelledby="install-status-title">
-      <span class="badge style-badge">{release ? '公开下载 · 客户端仍为实验支持' : '服务候选 · 安装入口待验证'}</span>
-      <h2 id="install-status-title">{release ? '把这份灵感装进下一次创作' : '公开安装入口正在准备'}</h2>
-      {release ? <><p>下载插件 {release.plugin_version}。使用托管远程服务，后续内容更新无需重新安装；宿主支持状态见下方。尚未进入官方插件目录。</p><div class="install-actions"><a class="btn btn-primary" href={release.download_url} download>下载插件 ZIP ↗</a><a class="btn btn-ghost" href={sitePath('release.json')}>查看版本与校验值 ↗</a></div>{release.marketplace_ref && <><p>在已安装的 Codex CLI 中运行下面两步，然后开启新会话：</p><pre><code>{`codex plugin marketplace add sawaki-zexi/anime-img-gen-prompts --ref ${release.marketplace_ref}\ncodex plugin add anime-prompt-atelier@anime-atelier-plugins`}</code></pre></>}<p>远程 MCP：<a href={release.mcp_url}>{release.mcp_url}</a>。ZIP 可供支持该格式的客户端导入；各客户端的安装方式和验证范围见安装记录。</p></> : <p>画廊、远程服务与插件分发分两阶段发布。当前候选不提供尚未验证的安装链接；可以先从画廊复制提示词。</p>}
-      <p>现在可以直接从画廊复制提示词。面向普通用户的完整流程会使用托管服务，无需安装 Node.js、Python 或启动本地服务。</p>
-      <div class="install-actions"><a class="btn btn-primary" href={sitePath('#gallery')}>先从画廊开始 <span aria-hidden="true">↗</span></a><a class="btn btn-ghost" href={`${repository}/blob/main/docs/plugin-installation.md`} target="_blank" rel="noreferrer">查看测试与安装记录 ↗</a></div>
+    <h1>Agent 接入</h1>
+    <p class="support-status">CLI 实验支持 · 桌面端未验证 · 未上架官方目录</p>
+    <section class="card install-status" aria-labelledby="install-title">
+      <h2 id="install-title">Codex CLI 安装</h2>
+      <pre><code>{`codex plugin marketplace add sawaki-zexi/anime-img-gen-prompts --ref ${marketplaceRef}\ncodex plugin add anime-prompt-atelier@anime-atelier-plugins`}</code></pre>
+      <p>运行两步后开启新会话。后续内容更新无需重装。</p>
+      {release ? <div class="install-actions"><a class="btn btn-primary" href={release.download_url} download>下载插件 ZIP</a></div> : <p>ZIP 下载在正式发布页提供。</p>}
     </section>
-    <section aria-labelledby="client-title" class="install-clients">
-      <span class="eyebrow">SUPPORT, AS IT REALLY STANDS</span><h2 id="client-title">按真实结果，选择接入方式</h2>
-      <p>平台支持插件，不代表本插件已经在该平台完成全部验证。安装后通常需要开启新会话；部分桌面来源需要重启客户端。</p>
-      <dl class="client-status-list">
-        <div><dt>Codex CLI</dt><dd><span class="badge badge-soft">实验</span>隔离安装、用户级 Skill 发现与三个工具连接已验证；自动调用的实际记录见测试材料。</dd></div>
-        <div><dt>Codex 桌面端</dt><dd><span class="badge style-badge">尚未验证</span>官方支持插件；本插件尚未完成桌面端干净环境安装与完整创作验证。</dd></div>
-        <div><dt>ChatGPT 网页、桌面与移动端</dt><dd><span class="badge style-badge">尚未验证</span>官方公共插件可在支持的界面使用；本插件尚未发布到公共目录。</dd></div>
-        <div><dt>Codex IDE 扩展</dt><dd><span class="badge">不支持插件</span>官方当前未提供插件支持；不能把 CLI 的验证结果视为 IDE 支持。</dd></div>
-        <div><dt>其他 MCP 客户端</dt><dd><span class="badge badge-soft">仅协议验证</span>标准 MCP 的检索、读取与渲染已测试。单独连接工具不包含本插件 Skill，也不等于跨项目自动调用。</dd></div>
-      </dl>
-      <p class="install-footnote">支持状态核对于 2026-11-10。参见 <a href="https://learn.chatgpt.com/docs/plugins" target="_blank" rel="noreferrer">OpenAI 客户端说明 ↗</a>。</p>
-    </section>
-    <div class="install-detail-grid">
-      <section class="card install-info"><span class="eyebrow">ONE INSTALL, NEW IDEAS</span><h2>一次启用，带到新会话</h2><p>完整体验的目标是在用户级安装后，于其他项目的新会话中发现同一个 Skill 与远程工具，无需逐个项目复制提示词或配置。</p><p>没有生图工具时，Agent 会交付可直接使用的完整提示词；没有合适模板或服务失败时，会明确说明并提供画廊回退。</p></section>
-      <section class="card install-info"><span class="eyebrow">FOR MAINTAINERS</span><h2>可复现的测试分发</h2><p>仓库提供生成 ZIP 和本地 marketplace 的构建入口，以及独立配置的安装探针与跨项目评测。测试地址不会作为普通用户安装入口。</p><p><a href={`${repository}/tree/main/plugin`} target="_blank" rel="noreferrer">插件源文件 ↗</a> · <a href={`${repository}/blob/main/docs/plugin-installation.md`} target="_blank" rel="noreferrer">维护者验证步骤 ↗</a></p></section>
-    </div>
+    <details class="card install-advanced">
+      <summary>高级与兼容性</summary>
+      {release && <><p>插件版本：{release.plugin_version}</p><p>MCP：<a href={release.mcp_url}>{release.mcp_url}</a></p><p>ZIP SHA-256：<code>{release.archive_sha256}</code></p></>}
+      <p>其他 MCP 客户端仅完成协议验证；单独连接工具不包含插件 Skill。Codex IDE 扩展不支持插件。</p>
+      <p><a href={`${repository}/blob/main/docs/plugin-installation.md`} target="_blank" rel="noreferrer">安装与兼容性记录 ↗</a></p>
+    </details>
   </div>
 </Layout>

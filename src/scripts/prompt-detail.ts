@@ -5,14 +5,15 @@ import { copyField } from '../lib/clipboard.ts';
 const data = JSON.parse(document.querySelector('#detail-data')!.textContent!) as { catalog: unknown; id: string };
 const catalog = catalogSchema.parse(data.catalog);
 const prompt = catalog.prompts.find(item => item.id === data.id)!;
-const form = document.querySelector<HTMLFormElement>('#variables-form')!;
-const renderedField = document.querySelector<HTMLTextAreaElement>('#rendered-prompt')!;
+const form = document.querySelector<HTMLFormElement>('#variables-form');
+const renderedField = document.querySelector<HTMLTextAreaElement>('#rendered-prompt');
 const negativeField = document.querySelector<HTMLTextAreaElement>('#rendered-negative');
-const error = document.querySelector<HTMLElement>('#render-error')!;
-const copyButton = document.querySelector<HTMLButtonElement>('#copy-rendered')!;
+const error = document.querySelector<HTMLElement>('#render-error');
+const copyButton = document.querySelector<HTMLButtonElement>('#copy-rendered');
 const negativeButton = document.querySelector<HTMLButtonElement>('#copy-rendered-negative');
 
 function update() {
+  if (!form || !renderedField || !error || !copyButton) return;
   const variables = Object.fromEntries(new FormData(form).entries());
   const result = renderPrompt(catalog, { id: prompt.id, expected_revision: prompt.prompt_revision, variables });
   copyButton.disabled = !result.ok;
@@ -42,11 +43,11 @@ function update() {
   error.textContent = [result.error.message, ...descriptions].join(' ');
 }
 
-form.addEventListener('input', update);
-form.addEventListener('change', update);
+form?.addEventListener('input', update);
+form?.addEventListener('change', update);
 // The reset event fires before the browser restores each control's default value.
-form.addEventListener('reset', () => { setTimeout(update, 0); });
-form.addEventListener('submit', event => event.preventDefault());
+form?.addEventListener('reset', () => { setTimeout(update, 0); });
+form?.addEventListener('submit', event => event.preventDefault());
 for (const [button, field, status] of [
   ['#copy-rendered', '#rendered-prompt', '#render-copy-status'],
   ['#copy-original', '#original-prompt', '#original-copy-status'],

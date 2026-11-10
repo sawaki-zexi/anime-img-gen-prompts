@@ -15,6 +15,11 @@ const query = form.querySelector<HTMLInputElement>('[name=q]')!;
 const model = form.querySelector<HTMLInputElement>('[name=model]')!;
 const verified = form.querySelector<HTMLInputElement>('[name=verified]')!;
 const limit = form.querySelector<HTMLSelectElement>('[name=limit]')!;
+const advanced = form.querySelector<HTMLDetailsElement>('#advanced-filters')!;
+const applied = document.querySelector<HTMLElement>('#applied-filters')!;
+const clearButton = document.querySelector<HTMLButtonElement>('#clear-search')!;
+const emptyReset = document.querySelector<HTMLButtonElement>('#empty-reset')!;
+const pagination = document.querySelector<HTMLElement>('.pagination')!;
 let current: Record<string, unknown> = {};
 let nextCursor: string | null = null;
 const details = new Map<string, Promise<string>>();
@@ -22,8 +27,14 @@ const local = (url: string) => new URL(url).pathname;
 const label = (id: string) => [...catalog.taxonomy.use_cases, ...catalog.taxonomy.styles].find(term => term.id === id)?.label ?? id;
 
 function conditions(input: Record<string, unknown>) {
-  const parts = [typeof input.query === 'string' && input.query ? `关键词「${input.query}」` : '', ...(['use_cases', 'styles'] as const).flatMap(key => Array.isArray(input[key]) ? input[key].map(id => label(String(id))) : []), input.model ? `模型 ${input.model}` : '', input.verified_only ? '仅已验证' : ''].filter(Boolean);
-  return parts.length ? parts.join(' · ') : '全部用途与画风';
+  const parts = [typeof input.query === 'string' && input.query.trim() ? `关键词「${input.query}」` : '', ...(['use_cases', 'styles'] as const).flatMap(key => Array.isArray(input[key]) ? input[key].map(id => label(String(id))) : []), input.model ? `模型 ${input.model}` : '', input.verified_only ? '仅已验证' : '', input.limit && Number(input.limit) !== 5 ? `每页 ${input.limit} 条` : ''].filter(Boolean);
+  return parts.join(' · ');
+}
+
+function showConditions(input: Record<string, unknown>) {
+  const summary = conditions(input);
+  applied.textContent = summary; applied.hidden = !summary;
+  clearButton.hidden = !summary; emptyReset.hidden = !summary;
 }
 
 type Item = Extract<SearchResult, { ok: true }>['data']['items'][number];
@@ -35,15 +46,15 @@ function card(item: Item) {
   const image = article.querySelector('img')!;
   image.src = local(item.cover.thumbnail); image.alt = item.cover.alt; image.width = item.cover.width; image.height = item.cover.height;
   article.querySelector('h3 a')!.textContent = item.title;
-  article.querySelector('.language-label')!.textContent = item.language.toUpperCase();
-  article.querySelector('.card-summary')!.textContent = item.summary;
   const tags = article.querySelector('.tag-row')!;
   tags.replaceChildren(...[...item.use_cases, ...item.styles].map(id => {
     const badge = document.createElement('span'); badge.className = `badge ${item.styles.includes(id) ? 'style-badge' : 'badge-soft'}`; badge.textContent = label(id); return badge;
   }));
   const modelInfo = item.model_compatibility.find(info => info.model === current.model);
   const modelStatus = { verified: '已验证', declared: '作者声明', unknown: '未知', incompatible: '不兼容' };
-  article.querySelector('.model-note')!.textContent = current.model ? `${current.model} · ${modelInfo ? modelStatus[modelInfo.status] : '兼容性未知'}` : item.model_compatibility.some(info => info.status === 'verified') ? '有已验证模型 · 详见适用条件' : '具体模型兼容性未知';
+  const modelNote = article.querySelector<HTMLElement>('.model-note')!;
+  modelNote.hidden = !current.model;
+  modelNote.textContent = current.model ? `${current.model} · ${modelInfo ? modelStatus[modelInfo.status] : '兼容性未知'}` : '';
   article.querySelector('button')!.setAttribute('aria-label', `复制${item.title}的模板原文`);
   article.querySelector('.copy-status')!.textContent = '';
   article.querySelector<HTMLElement>('.card-copy-fallback')!.hidden = true;
@@ -54,13 +65,13 @@ function search(input: Record<string, unknown>, updateUrl = true, focus = false)
   const found = searchPrompts(catalog, input);
   current = input;
   error.hidden = found.ok;
-  document.querySelector('#applied-filters')!.textContent = `${conditions(input)} · 按相关性、稳定 ID 排序`;
+  showConditions(input);
   if (!found.ok) {
-    grid.replaceChildren(); next.disabled = true; nextCursor = null;
+    grid.replaceChildren(); next.hidden = true; nextCursor = null;
     document.querySelector<HTMLElement>('#empty-state')!.hidden = true;
     document.querySelector('#result-count')!.textContent = '条件需要调整';
-    document.querySelector('#page-status')!.textContent = '';
     first.hidden = !input.cursor;
+    pagination.hidden = first.hidden;
     const issues = found.error.details.issues as { message: string }[] | undefined;
     const unknown = found.error.details.unknown as string[] | undefined;
     error.textContent = [found.error.message, ...(issues?.map(issue => issue.message) ?? []), ...(unknown?.map(id => `未知筛选项：${id}`) ?? [])].join(' ');
@@ -69,11 +80,12 @@ function search(input: Record<string, unknown>, updateUrl = true, focus = false)
     return;
   }
   current = { ...found.data.filters, ...(input.cursor ? { cursor: input.cursor } : {}) };
+  showConditions(current);
   grid.replaceChildren(...found.data.items.map(card));
   document.querySelector<HTMLElement>('#empty-state')!.hidden = found.data.items.length > 0;
-  document.querySelector('#result-count')!.textContent = `本页 ${found.data.items.length} 条模板`;
-  nextCursor = found.data.next_cursor; next.disabled = !nextCursor; first.hidden = !input.cursor;
-  document.querySelector('#page-status')!.textContent = !catalog.prompts.length ? '暂无公开模板' : nextCursor ? '还有更多灵感' : '已看到本次检索的最后一页';
+  document.querySelector('#result-count')!.textContent = `${found.data.items.length} 条`;
+  nextCursor = found.data.next_cursor; next.hidden = !nextCursor; first.hidden = !input.cursor;
+  pagination.hidden = next.hidden && first.hidden;
   if (updateUrl) {
     updateLocation(current as SearchInput);
   }
@@ -97,17 +109,18 @@ function restore() {
     const option = new Option(`${pageSize} 条`, pageSize); limit.add(option);
   }
   limit.value = pageSize;
+  advanced.open = !!input.model || input.verified_only === true || pageSize !== '5';
   for (const key of ['use_case', 'style'] as const) {
     const values = input[key === 'use_case' ? 'use_cases' : 'styles'] as string[];
     form.querySelectorAll<HTMLInputElement>(`[name=${key}]`).forEach(field => { field.checked = values.includes(field.value); });
   }
   search(input, false);
 }
-function clear() { form.reset(); search(formInput()); }
+function clear() { form.reset(); advanced.open = false; search(formInput()); }
 form.addEventListener('submit', event => { event.preventDefault(); search(formInput()); });
 form.addEventListener('change', () => search(formInput()));
-document.querySelector('#clear-search')!.addEventListener('click', clear);
-document.querySelector('#empty-reset')!.addEventListener('click', clear);
+clearButton.addEventListener('click', clear);
+emptyReset.addEventListener('click', clear);
 next.addEventListener('click', () => { if (nextCursor) search({ ...current, cursor: nextCursor }, true, true); });
 first.addEventListener('click', () => { const { cursor: _cursor, ...input } = current; search(input, true, true); });
 window.addEventListener('popstate', restore);
