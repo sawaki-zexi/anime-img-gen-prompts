@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-11-10T08:48:43.382Z",
+  "cli": "codex-cli 0.165.0",
+  "source": "sawaki-zexi/anime-img-gen-prompts",
+  "ref": "plugin-release",
+  "source_commit": "44dead5160451786fecbf612c9a622c95185cd4a",
+  "installed": {
+    "name": "anime-prompt-atelier",
+    "version": "0.1.2",
+    "mode": "release",
+    "mcpUrl": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp",
+    "galleryUrl": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/",
+    "fileCount": 8
+  },
+  "archive_sha256": "4c144a36f9e81be4be1f82bca19a9404e233f88e100e9896567a8b3456400907",
+  "files": {
+    "plugin.json": "3de6f55c82dd104c42bcf7d81d71af7db66dba57c8ee98045a9dd3db73670643",
+    "mcp.json": "6d0e0d2a6f06f70ff42ad996f4836b3e0e76b46a63ce436fc0d7e9b2c69cf9d7",
+    ".codex-plugin/plugin.json": "b3c86fdc864f704e8dfa3102cbb2ef37bf140af3792b5a16cd5e968272e2c412",
+    ".mcp.json": "f1a2b9ce307b7d411191ffcac89cdb00198d203fa0222cb09fd7baa0d66c7e1c",
+    "assets/icon.svg": "aeb81193fdf6e3f7b5a3a09b3b3f95642c69b33e754630487e04432eddf40bc6",
+    "skills/anime-prompt-atelier/SKILL.md": "a098060b0bf2ed9015e5fb0b20f862b3c581c138b3e6e8e9019227c464448186",
+    "skills/anime-prompt-atelier/agents/openai.yaml": "d80653fdff94977fd23e6827caaea17d50910d4ab0f7bd04cb341dd478dbc0fe",
+    "build-info.json": "e856d07ca607895ad63d257a01f50f20a32f823653b1ed59778ff1102c724af3"
+  },
+  "all_installed_files_match_release": true,
+  "projects": [
+    {
+      "project": 1,
+      "project_kind": "film-notes",
+      "skill_name": "anime-prompt-atelier:anime-prompt-atelier",
+      "enabled": true,
+      "scope": "user",
+      "body_read_by_host": true,
+      "body_sha256": "a098060b0bf2ed9015e5fb0b20f862b3c581c138b3e6e8e9019227c464448186"
+    },
+    {
+      "project": 2,
+      "project_kind": "household-budget",
+      "skill_name": "anime-prompt-atelier:anime-prompt-atelier",
+      "enabled": true,
+      "scope": "user",
+      "body_read_by_host": true,
+      "body_sha256": "a098060b0bf2ed9015e5fb0b20f862b3c581c138b3e6e8e9019227c464448186"
+    }
+  ],
+  "mcp_tools": [
+    "get_prompt",
+    "render_prompt",
+    "search_prompts"
+  ],
+  "mcp_contract_verified": true,
+  "local_content_repo": false,
+  "local_service": false,
+  "model_calls": 0,
+  "desktop_evaluation": "not-run",
+  "catalog_revision_at_install": "sha256:91f4117a1f51cdaf807e5fc0caf8e6ee6c9205923849e26e25410e6c6266de32",
+  "note": "Actual remote Git install completed before the third user entry was added; no-reinstall current-content probes are recorded separately.",
+  "result": "pass"
+}

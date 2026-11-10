@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-11-10T08:52:25.189Z",
+  "cli": "codex-cli 0.165.0",
+  "model": "gpt-6.1-sol",
+  "plugin_version": "0.1.2",
+  "source_commit": "44dead5160451786fecbf612c9a622c95185cd4a",
+  "catalog_revision": "sha256:91f4117a1f51cdaf807e5fc0caf8e6ee6c9205923849e26e25410e6c6266de32",
+  "content_state": "two supplied redraw entries; before third cotton-doll addition",
+  "test_scope": "two text-only fresh project sessions; not full 12-case qualification and not Desktop verification",
+  "installed_once": true,
+  "local_content_repo": false,
+  "local_service": false,
+  "native_image_generation": "explicitly disabled; no actual or recording image-generation tool",
+  "original_auth_and_configuration_unchanged": true,
+  "temporary_auth_removed": true,
+  "installed_configuration_unchanged": true,
+  "cases": [
+    {
+      "scenario": "prompt-only-no-reference",
+      "project": 1,
+      "fresh_thread_id": "01a1c4a7-61e0-76c3-9552-9bd3eaf66540",
+      "activated": true,
+      "retrieved_ids": [
+        "vacant-chibi-avatar-redraw"
+      ],
+      "rendered": 1,
+      "calls": [
+        {
+          "tool": "search_prompts",
+          "arguments": {
+            "query": "天然呆 大眼 Q版 头像 角色重绘",
+            "limit": 3
+          },
+          "ok": true,
+          "catalog_revision": "sha256:91f4117a1f51cdaf807e5fc0caf8e6ee6c9205923849e26e25410e6c6266de32"
+        },
+        {
+          "tool": "search_prompts",
+          "arguments": {
+            "query": "天然呆",
+            "limit": 3
+          },
+          "ok": true,
+          "catalog_revision": "sha256:91f4117a1f51cdaf807e5fc0caf8e6ee6c9205923849e26e25410e6c6266de32"
+        },
+        {
+          "tool": "get_prompt",
+          "arguments": {
+            "id": "vacant-chibi-avatar-redraw",
+            "expected_revision": "sha256:cf11e80f5728ef8fe53af475220f8c35f5ec7c90b8ea7c1cdb6633c107517b77"
+          },
+          "ok": true,
+          "catalog_revision": "sha256:91f4117a1f51cdaf807e5fc0caf8e6ee6c9205923849e26e25410e6c6266de32"
+        },
+        {
+          "tool": "render_prompt",
+          "arguments": {
+            "id": "vacant-chibi-avatar-redraw",
+            "expected_revision": "sha256:cf11e80f5728ef8fe53af475220f8c35f5ec7c90b8ea7c1cdb6633c107517b77",
+            "variables": {}
+          },
+          "ok": true,
+          "catalog_revision": "sha256:91f4117a1f51cdaf807e5fc0caf8e6ee6c9205923849e26e25410e6c6266de32"
+        }
+      ],
+      "trace_structure_passed": true,
+      "host_skill_read_limit": true,
+      "manual_review": {
+        "result": "pass for prompt-only delivery",
+        "full_original_delivered": true,
+        "needless_reference_upload_request": false,
+        "reference_requirement_explained": true,
+        "image_generation": "not requested or invoked"
+      },
+      "cli_exit_code": 0
+    },
+    {
+      "scenario": "generation-missing-reference",
+      "project": 2,
+      "fresh_thread_id": "01a1c4a8-46d8-73c2-8ae9-1d1c368f1c5f",
+      "activated": false,
+      "retrieved_ids": [],
+      "rendered": 0,
+      "calls": [],
+      "trace_structure_passed": true,
+      "host_skill_read_limit": true,
+      "manual_review": {
+        "result": "limited; reference request was correct, library workflow was blocked",
+        "original_character_reference_requested": true,
+        "invented_character_or_image": false,
+        "library_retrieval_completed": false,
+        "reason": "Host automatic approval rejected reading Skill body; did not change permissions to bypass it.",
+        "image_generation": "not invoked"
+      },
+      "cli_exit_code": 0
+    }
+  ],
+  "support_status": "experimental; one prompt-only retrieval passed, one missing-reference response was limited by host Skill-read policy",
+  "manual_review": "completed against raw traces and complete final texts; no generation handoff is claimed"
+}

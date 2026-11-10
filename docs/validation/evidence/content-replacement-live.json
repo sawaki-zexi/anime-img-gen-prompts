@@ -1,0 +1,202 @@
+{
+  "checked_at": "2026-11-10T09:12:42.517Z",
+  "mode": "actual public HTTPS",
+  "authentication": "no cookies or Authorization",
+  "protocols": [
+    {
+      "mode": "legacy",
+      "items": [
+        {
+          "id": "rough-crayon-character-redraw",
+          "prompt_sha256": "4c598d1565c7f25ecee154546af76d07501b9eadfedc1f6faad5dc82f89c3820",
+          "generation_date": null,
+          "model": null,
+          "reference_image_required": true
+        },
+        {
+          "id": "vacant-chibi-avatar-redraw",
+          "prompt_sha256": "3073a2f51b981ce5140338475f468cbfaa153099e2bc09eb8dc08928fdfab109",
+          "generation_date": null,
+          "model": null,
+          "reference_image_required": true
+        },
+        {
+          "id": "cotton-doll-20cm-character-redraw",
+          "prompt_sha256": "296b291410828a16903d6a366d044c00561dfb659407ed47fb48c1718a7f059c",
+          "generation_date": null,
+          "model": null,
+          "reference_image_required": true
+        }
+      ],
+      "removed_ids_not_found": 7
+    },
+    {
+      "mode": {
+        "pin": "2026-07-28"
+      },
+      "items": [
+        {
+          "id": "rough-crayon-character-redraw",
+          "prompt_sha256": "4c598d1565c7f25ecee154546af76d07501b9eadfedc1f6faad5dc82f89c3820",
+          "generation_date": null,
+          "model": null,
+          "reference_image_required": true
+        },
+        {
+          "id": "vacant-chibi-avatar-redraw",
+          "prompt_sha256": "3073a2f51b981ce5140338475f468cbfaa153099e2bc09eb8dc08928fdfab109",
+          "generation_date": null,
+          "model": null,
+          "reference_image_required": true
+        },
+        {
+          "id": "cotton-doll-20cm-character-redraw",
+          "prompt_sha256": "296b291410828a16903d6a366d044c00561dfb659407ed47fb48c1718a7f059c",
+          "generation_date": null,
+          "model": null,
+          "reference_image_required": true
+        }
+      ],
+      "removed_ids_not_found": 7
+    }
+  ],
+  "old_routes": [
+    {
+      "path": "/prompts/summer-anime-illustrator/",
+      "status": 404
+    },
+    {
+      "path": "/images/summer-anime-illustrator.webp",
+      "status": 404
+    },
+    {
+      "path": "/images/summer-anime-illustrator-thumb.webp",
+      "status": 404
+    },
+    {
+      "path": "/data/prompts/summer-anime-illustrator.json",
+      "status": 404
+    },
+    {
+      "path": "/prompts/mint-watercolor-avatar/",
+      "status": 404
+    },
+    {
+      "path": "/images/mint-watercolor-avatar.webp",
+      "status": 404
+    },
+    {
+      "path": "/images/mint-watercolor-avatar-thumb.webp",
+      "status": 404
+    },
+    {
+      "path": "/data/prompts/mint-watercolor-avatar.json",
+      "status": 404
+    },
+    {
+      "path": "/prompts/stargazer-character-sheet/",
+      "status": 404
+    },
+    {
+      "path": "/images/stargazer-character-sheet.webp",
+      "status": 404
+    },
+    {
+      "path": "/images/stargazer-character-sheet-thumb.webp",
+      "status": 404
+    },
+    {
+      "path": "/data/prompts/stargazer-character-sheet.json",
+      "status": 404
+    },
+    {
+      "path": "/prompts/seaside-watercolor-station/",
+      "status": 404
+    },
+    {
+      "path": "/images/seaside-watercolor-station.webp",
+      "status": 404
+    },
+    {
+      "path": "/images/seaside-watercolor-station-thumb.webp",
+      "status": 404
+    },
+    {
+      "path": "/data/prompts/seaside-watercolor-station.json",
+      "status": 404
+    },
+    {
+      "path": "/prompts/sleepy-cat-four-panel/",
+      "status": 404
+    },
+    {
+      "path": "/images/sleepy-cat-four-panel.webp",
+      "status": 404
+    },
+    {
+      "path": "/images/sleepy-cat-four-panel-thumb.webp",
+      "status": 404
+    },
+    {
+      "path": "/data/prompts/sleepy-cat-four-panel.json",
+      "status": 404
+    },
+    {
+      "path": "/prompts/shiba-reaction-stickers/",
+      "status": 404
+    },
+    {
+      "path": "/images/shiba-reaction-stickers.webp",
+      "status": 404
+    },
+    {
+      "path": "/images/shiba-reaction-stickers-thumb.webp",
+      "status": 404
+    },
+    {
+      "path": "/data/prompts/shiba-reaction-stickers.json",
+      "status": 404
+    },
+    {
+      "path": "/prompts/windchime-librarian-avatar/",
+      "status": 404
+    },
+    {
+      "path": "/images/windchime-librarian-avatar.webp",
+      "status": 404
+    },
+    {
+      "path": "/images/windchime-librarian-avatar-thumb.webp",
+      "status": 404
+    },
+    {
+      "path": "/data/prompts/windchime-librarian-avatar.json",
+      "status": 404
+    }
+  ],
+  "images": [
+    {
+      "id": "rough-crayon-character-redraw",
+      "rgba_sha256": "f6c60dc53416c61987abd7214d3ab00a26c863569e68c83101b2b4eeb7b54d11",
+      "lossless_pixels_equal": true,
+      "served_bytes": 1194954
+    },
+    {
+      "id": "vacant-chibi-avatar-redraw",
+      "rgba_sha256": "e4fd0ffb49c3e600b24d3b0edaa8c1e78546b4d47139dfcac08f078fe569e053",
+      "lossless_pixels_equal": true,
+      "served_bytes": 951590
+    },
+    {
+      "id": "cotton-doll-20cm-character-redraw",
+      "rgba_sha256": "f9d7f23ea37b532877c2dba7d1af6634678936c83604adb745db9855f27a3313",
+      "lossless_pixels_equal": true,
+      "served_bytes": 1764052
+    }
+  ],
+  "catalog_revision": "sha256:9f3651c5d185e417a07cd0ff13b3c7151474ce0e6f25d948ad3f891e81db3530",
+  "record_count": 3,
+  "manifest_stage": "service-candidate",
+  "metadata_log_fields": "provider logs not queried",
+  "result": "pass"
+}

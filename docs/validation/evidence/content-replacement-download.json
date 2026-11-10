@@ -1,0 +1,22 @@
+{
+  "checked_at": "2026-11-10T09:16:22.603Z",
+  "origin": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/",
+  "result": "pass",
+  "catalog_revision": "sha256:9f3651c5d185e417a07cd0ff13b3c7151474ce0e6f25d948ad3f891e81db3530",
+  "record_count": 3,
+  "stage": "distribution",
+  "public_manifest_equals_verified_frozen_artifact": true,
+  "plugin": {
+    "version": "0.1.2",
+    "archive": "/downloads/anime-prompt-atelier-0.1.2.zip",
+    "archive_sha256": "4c144a36f9e81be4be1f82bca19a9404e233f88e100e9896567a8b3456400907",
+    "marketplace_ref": "plugin-release",
+    "catalog_revision_at_build": "sha256:91f4117a1f51cdaf807e5fc0caf8e6ee6c9205923849e26e25410e6c6266de32"
+  },
+  "download_status": 200,
+  "download_bytes": 9055,
+  "download_sha256": "4c144a36f9e81be4be1f82bca19a9404e233f88e100e9896567a8b3456400907",
+  "plugin_zip_unchanged": true,
+  "current_installation_page": "three records, actual0.1.2 download and published Git steps",
+  "authentication": "anonymous HTTPS; no cookies or authorization"
+}

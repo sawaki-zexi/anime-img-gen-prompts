@@ -1,0 +1,65 @@
+{
+  "checked_at": "2026-11-10T09:16:19.124Z",
+  "origin": "https://anime-prompt-atelier.memorablestone1.chatgpt.site",
+  "cards": [
+    "cotton-doll-20cm-character-redraw",
+    "rough-crayon-character-redraw",
+    "vacant-chibi-avatar-redraw"
+  ],
+  "copied": [
+    {
+      "id": "rough-crayon-character-redraw",
+      "sha256": "4c598d1565c7f25ecee154546af76d07501b9eadfedc1f6faad5dc82f89c3820",
+      "full_original": true
+    },
+    {
+      "id": "vacant-chibi-avatar-redraw",
+      "sha256": "3073a2f51b981ce5140338475f468cbfaa153099e2bc09eb8dc08928fdfab109",
+      "full_original": true
+    },
+    {
+      "id": "cotton-doll-20cm-character-redraw",
+      "sha256": "296b291410828a16903d6a366d044c00561dfb659407ed47fb48c1718a7f059c",
+      "full_original": true
+    }
+  ],
+  "details": [
+    {
+      "id": "rough-crayon-character-redraw",
+      "caption": "✧ 收录配图 · 生成日期未提供查看原尺寸 ↗",
+      "reference_image_note": true,
+      "original_prompt_sha256": "4c598d1565c7f25ecee154546af76d07501b9eadfedc1f6faad5dc82f89c3820",
+      "sizes": {
+        "width": 360,
+        "page_width": 360,
+        "source": 324,
+        "source_scroll": 324
+      }
+    },
+    {
+      "id": "vacant-chibi-avatar-redraw",
+      "caption": "✧ 收录配图 · 生成日期未提供查看原尺寸 ↗",
+      "reference_image_note": true,
+      "original_prompt_sha256": "3073a2f51b981ce5140338475f468cbfaa153099e2bc09eb8dc08928fdfab109",
+      "sizes": {
+        "width": 360,
+        "page_width": 360,
+        "source": 324,
+        "source_scroll": 324
+      }
+    },
+    {
+      "id": "cotton-doll-20cm-character-redraw",
+      "caption": "✧ 收录配图 · 生成日期未提供查看原尺寸 ↗",
+      "reference_image_note": true,
+      "original_prompt_sha256": "296b291410828a16903d6a366d044c00561dfb659407ed47fb48c1718a7f059c",
+      "sizes": {
+        "width": 360,
+        "page_width": 360,
+        "source": 324,
+        "source_scroll": 324
+      }
+    }
+  ],
+  "errors": []
+}
