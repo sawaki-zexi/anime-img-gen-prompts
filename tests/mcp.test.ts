@@ -40,9 +40,9 @@ test('multiword match reasons reflect real fields, deduplicate sources and agree
   const app = await start(); t.after(() => app.close());
   const index = createSearchCatalog(catalog);
   const cases = [
-    { query: 'no logo', ids: ['mint-watercolor-avatar', 'seaside-watercolor-station', 'shiba-reaction-stickers', 'sleepy-cat-four-panel', 'stargazer-character-sheet', 'summer-anime-illustrator', 'windchime-librarian-avatar'], reasons: ['提示词正文关键词匹配'] },
-    { query: 'no logo watermark ui delicate pencil linework translucent', ids: ['mint-watercolor-avatar', 'windchime-librarian-avatar'], reasons: ['提示词正文关键词匹配'] },
-    { query: 'avatar 薄荷 no logo', ids: ['mint-watercolor-avatar', 'windchime-librarian-avatar'], reasons: ['用途、画风或模型词表匹配', '名称、关键词或简介匹配', '提示词正文关键词匹配'] },
+    { query: 'no logo', ids: ['fixture-avatar', 'fixture-character', 'fixture-comic', 'fixture-scenery', 'fixture-sticker', 'fixture-wallpaper'], reasons: ['提示词正文关键词匹配'] },
+    { query: 'no logo watermark ui delicate pencil linework translucent', ids: ['fixture-avatar'], reasons: ['提示词正文关键词匹配'] },
+    { query: 'avatar 薄荷 no logo', ids: ['fixture-avatar'], reasons: ['用途、画风或模型词表匹配', '名称、关键词或简介匹配', '提示词正文关键词匹配'] },
   ];
   for (const mode of ['modern', 'legacy'] as const) {
     const client = new Client({ name: `${mode}-match-reasons-test`, version: '1.0.0' }, { versionNegotiation: { mode: mode === 'modern' ? { pin: '2026-07-28' } : 'legacy' } });

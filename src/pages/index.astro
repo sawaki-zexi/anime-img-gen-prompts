@@ -5,7 +5,7 @@ import { catalog, searchCatalog, localPath, jsonForScript, sitePath } from '../l
 import { searchPrompts } from '../lib/catalog.ts';
 const result = searchPrompts(searchCatalog, {});
 if (!result.ok) throw new Error(result.error.message);
-const featured = catalog.prompts.find(prompt => prompt.id === 'summer-anime-illustrator') ?? catalog.prompts[0];
+const featured = catalog.prompts[0];
 const hero = featured?.examples[0];
 const templateItem = result.data.items[0];
 const hasPublished = catalog.prompts.length > 0;
@@ -15,11 +15,11 @@ const hasPublished = catalog.prompts.length > 0;
     {hero && <img class="hero-art" src={localPath(hero.image)} width={hero.width} height={hero.height} alt="" fetchpriority="high" />}
     <div class="hero-shade"></div>
     <div class="hero-inner"><span class="hero-kicker">✧ A LITTLE PROMPT, A NEW WORLD</span><h1 id="hero-title">把脑海里的画面，<br />变成下一张心动。</h1><p>寻找喜欢的动漫画风，<br class="mobile-break" />带走可以继续创作的提示词。</p><a class="btn hero-button" href="#gallery">探索这本灵感集 <span aria-hidden="true">↘</span></a></div>
-    <span class="hero-credit">{hero ? `本库真实生成示例 · ${featured?.title}` : '新的灵感正在准备中'}</span>
+    <span class="hero-credit">{hero ? `收录配图 · ${featured?.title}` : '新的灵感正在准备中'}</span>
   </section>
   <div class="page-shell gallery-shell">
     <form id="search-form" role="search" novalidate>
-      <div class="search-surface"><span class="search-icon" aria-hidden="true">⌕</span><label class="sr-only" for="prompt-query">搜索提示词</label><input class="input search-input" id="prompt-query" name="q" type="search" placeholder="搜索头像、海边、watercolor…" maxlength="512" autocomplete="off" /><button class="btn btn-primary" type="submit">寻找灵感 <span aria-hidden="true">↗</span></button></div>
+      <div class="search-surface"><span class="search-icon" aria-hidden="true">⌕</span><label class="sr-only" for="prompt-query">搜索提示词</label><input class="input search-input" id="prompt-query" name="q" type="search" placeholder="搜索重绘、粗蜡笔、Q版…" maxlength="512" autocomplete="off" /><button class="btn btn-primary" type="submit">寻找灵感 <span aria-hidden="true">↗</span></button></div>
       <div class="filter-surface">
         <fieldset class="filter-group"><legend>想创作什么</legend><div class="filter-chips">{catalog.taxonomy.use_cases.map(term => <label class="filter-chip"><input class="checkbox checkbox-xs" type="checkbox" name="use_case" value={term.id} /><span>{term.label}</span></label>)}</div></fieldset>
         <fieldset class="filter-group"><legend>喜欢的画风</legend><div class="filter-chips">{catalog.taxonomy.styles.map(term => <label class="filter-chip"><input class="checkbox checkbox-xs" type="checkbox" name="style" value={term.id} /><span>{term.label}</span></label>)}</div></fieldset>
@@ -28,7 +28,7 @@ const hasPublished = catalog.prompts.length > 0;
       </div>
     </form>
     <section id="gallery" class="gallery-section" aria-labelledby="gallery-title">
-      <div class="section-heading"><div><span class="eyebrow">YOUR NEXT LITTLE WORLD</span><h2 id="gallery-title" tabindex="-1">灵感，从这里展开<span aria-hidden="true"> ✦</span></h2><p>从人物到风景，每张图都有可以继续创作的提示词。</p></div><span class="badge count-badge" id="result-count" aria-live="polite">本页 {result.data.items.length} 条模板</span></div>
+      <div class="section-heading"><div><span class="eyebrow">YOUR NEXT LITTLE WORLD</span><h2 id="gallery-title" tabindex="-1">灵感，从这里展开<span aria-hidden="true"> ✦</span></h2><p>带上原角色参考图，探索不同的动漫重绘效果。</p></div><span class="badge count-badge" id="result-count" aria-live="polite">本页 {result.data.items.length} 条模板</span></div>
       <p class="applied-filters" id="applied-filters" aria-live="polite">全部用途与画风 · 按相关性、稳定 ID 排序</p>
       <p class="search-error" id="search-error" role="alert" hidden></p>
       <div id="prompt-grid" class="prompt-grid">{result.data.items.map(item => <PromptCard item={item} />)}</div>
@@ -37,7 +37,7 @@ const hasPublished = catalog.prompts.length > 0;
       <noscript><p class="alert">启用 JavaScript 后可筛选、翻页与直接复制。你也可以打开上方任一详情，选择模板文本复制。</p></noscript>
     </section>
     <aside class="card gallery-plugin-note"><span aria-hidden="true">✦</span><div><strong>想把灵感带到其他项目？</strong><p>查看插件的接入方式、测试状态与支持范围。</p></div><a class="btn btn-ghost btn-sm" href={sitePath('install/')}>查看插件接入 ↗</a></aside>
-    <div class="gallery-caption">从人物到远方的风景，让灵感有迹可循。<br />每条都有独立示例、生成记录与来源。</div>
+    <div class="gallery-caption">提示词与收录配图，让灵感有迹可循。<br />配图不自动作为你的角色参考；未提供的生成条件明确标记。</div>
   </div>
   <template id="prompt-card-template">{templateItem && <PromptCard item={templateItem} />}</template>
   <script id="catalog-data" type="application/json" is:inline set:html={jsonForScript(searchCatalog)} />

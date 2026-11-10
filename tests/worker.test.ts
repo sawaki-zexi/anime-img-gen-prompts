@@ -11,7 +11,7 @@ import { verifyRelease } from '../scripts/release/verify.ts';
 import { sha256 } from '../scripts/plugin/package.ts';
 import { runtimeConfig } from '../src/server/config.ts';
 import { failureSchema, getResultSchema, searchResultSchema } from '../src/lib/schema.ts';
-import { catalog, projectRoot } from './helpers.ts';
+import { catalog, fixtureImages } from './helpers.ts';
 
 test('self-contained Worker ESM serves exact assets with safe caching and both standard MCP protocol generations', async t => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'anime-worker-test-'));
@@ -19,7 +19,7 @@ test('self-contained Worker ESM serves exact assets with safe caching and both s
   const staticDir = path.join(directory, 'static'); await mkdir(path.join(staticDir, '_astro'), { recursive: true }); await mkdir(path.join(staticDir, 'images'));
   await writeFile(path.join(staticDir, 'index.html'), '<!doctype html><title>worker fixture</title>');
   await writeFile(path.join(staticDir, '_astro/file.abc123.js'), 'console.log(1)');
-  const image = await readFile(path.join(projectRoot, 'public/images/summer-anime-illustrator.webp')); await writeFile(path.join(staticDir, 'images/real.webp'), image);
+  const image = fixtureImages.get('images/fixture-wallpaper.webp')!; await writeFile(path.join(staticDir, 'images/real.webp'), image);
   const output = path.join(directory, 'worker.mjs');
   const bundled = await bundleWorker({ staticDir, output, catalog, config: runtimeConfig() }); assert.equal(bundled.assetCount, 3);
   const { default: worker } = await import(pathToFileURL(output).href);

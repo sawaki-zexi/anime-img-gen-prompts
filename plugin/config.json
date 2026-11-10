@@ -1,10 +1,10 @@
 {
   "name": "anime-prompt-atelier",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "marketplace": "anime-atelier-plugins",
   "displayName": "Anime Prompt Atelier · 动漫灵感工坊",
-  "description": "按动漫创作目标检索有真实示例的模板，填写变量并交给可用的生图工具。",
-  "shortDescription": "Anime templates for characters, scenery, comics and stickers",
+  "description": "检索动漫角色重绘提示词与收录配图，保留原文和参考图要求，再交给可用的图像工具。",
+  "shortDescription": "Anime redraw prompts with supplied style examples",
   "developerName": "sawaki-zexi",
   "repository": "https://github.com/sawaki-zexi/anime-img-gen-prompts",
   "serverName": "anime-prompt-atelier",

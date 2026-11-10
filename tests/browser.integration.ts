@@ -7,11 +7,41 @@ import { searchPrompts } from '../src/lib/catalog.ts';
 import { readSearchParams } from '../src/lib/search-url.ts';
 import { runProcess } from './browser-helper.ts';
 import { browserTestResources } from './browser-resources.ts';
-import { catalog, fixture, projectRoot, prompt } from './helpers.ts';
+import { catalog, productionCatalog, fixture, projectRoot, prompt } from './helpers.ts';
 import type { Catalog } from '../src/lib/schema.ts';
 import { syntheticCatalog } from '../benchmarks/fixture.ts';
 
 const visibleIds = `Array.from(document.querySelectorAll('#prompt-grid [data-prompt-id]'), item => item.dataset.promptId)`;
+
+test('real production mobile gallery copies both user originals and states reference-image and unknown-generation conditions without retired content', { timeout: 120000 }, async t => {
+  const resources = browserTestResources(t), files = await resources.fixture();
+  const server = await resources.serve(path.join(projectRoot, 'dist'));
+  const browser = await resources.browser(path.join(files.directory, 'chrome'));
+  const proof = JSON.parse(await readFile(path.join(projectRoot, 'docs/validation/evidence/content-replacement-hashes.json'), 'utf8'));
+  await browser.viewport(360, true);
+  await browser.send('Browser.grantPermissions', { origin: server.origin, permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'] }, false);
+  await browser.navigate(server.origin, `${visibleIds}.length === 2`);
+  assert.deepEqual(await browser.evaluate(visibleIds), productionCatalog.prompts.map(prompt => prompt.id));
+  assert.ok((await browser.evaluate<string>('document.querySelector(".hero-credit").textContent')).includes('收录配图'));
+  assert.equal(await browser.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), true);
+  for (const prompt of productionCatalog.prompts) {
+    await browser.navigate(`${server.origin}/prompts/${prompt.id}/`, `document.querySelector('#original-prompt')?.value.length > 0`);
+    assert.equal(await browser.evaluate('document.querySelector("#original-prompt").value'), prompt.template);
+    assert.equal(await browser.evaluate('document.querySelector("#rendered-prompt").value'), prompt.template);
+    assert.equal(await browser.evaluate('document.querySelectorAll("#variables-form [data-variable]").length'), 0);
+    const text = await browser.evaluate<string>('document.body.textContent');
+    assert.ok(text.includes('原角色参考图')); assert.ok(text.includes('不自动替代用户角色')); assert.ok(text.includes('生成日期未提供'));
+    assert.ok(!text.includes('实际生成示例'));
+    for (const id of proof.removed_ids) assert.ok(!text.includes(id));
+    await browser.click('.source-card details summary');
+    assert.equal(await browser.evaluate('document.querySelector(".source-card").scrollWidth <= document.querySelector(".source-card").clientWidth'), true);
+    await browser.tabTo('#copy-original'); await browser.key('Enter'); await browser.wait(`document.querySelector('#original-copy-status').textContent.includes('已复制')`);
+    assert.equal((await browser.evaluate<string>('navigator.clipboard.readText()')).replaceAll('\r\n', '\n'), prompt.template);
+    assert.equal(await browser.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), true);
+  }
+  for (const requested of server.requests) for (const id of proof.removed_ids) assert.ok(!requested.includes(id));
+  assert.deepEqual(browser.errors, []);
+});
 
 async function buildFixtureSite(files: Awaited<ReturnType<typeof fixture>>, suppliedCatalog?: Catalog) {
   await cp(path.join(projectRoot, 'src'), path.join(files.directory, 'src'), { recursive: true });
@@ -26,7 +56,8 @@ async function buildFixtureSite(files: Awaited<ReturnType<typeof fixture>>, supp
 test('real mobile browser follows keyboard filters, pagination, share URLs, details and clipboard fallbacks', { timeout: 120000 }, async t => {
   const resources = browserTestResources(t);
   const files = await resources.fixture();
-  const server = await resources.serve(path.join(projectRoot, 'dist'));
+  await buildFixtureSite(files);
+  const server = await resources.serve(path.join(files.directory, 'dist'));
   const browser = await resources.browser(path.join(files.directory, 'chrome'));
   const firstPage = searchPrompts(catalog); assert.ok(firstPage.ok && firstPage.data.next_cursor);
   const secondPage = searchPrompts(catalog, { cursor: firstPage.data.next_cursor }); assert.ok(secondPage.ok);
@@ -38,7 +69,7 @@ test('real mobile browser follows keyboard filters, pagination, share URLs, deta
   await browser.navigate(server.origin, `document.querySelector('#result-count')?.textContent.includes('5')`);
   assert.equal(await browser.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), true);
   assert.equal(server.requests.filter(value => value.startsWith('/data/prompts/')).length, 0);
-  assert.ok(server.requests.filter(value => /\.webp$/.test(value) && !value.endsWith('-thumb.webp')).every(value => value.endsWith('summer-anime-illustrator.webp')));
+  assert.ok(server.requests.filter(value => /\.webp$/.test(value) && !value.endsWith('-thumb.webp')).every(value => value.endsWith('fixture-avatar.webp')));
   await browser.tabTo('#next-page'); await browser.key('Enter');
   await browser.wait(`(${visibleIds}).join(',') === ${JSON.stringify(secondPageIds.join(','))}`);
   const pageUrl = await browser.evaluate<string>('location.href');
@@ -132,7 +163,7 @@ test('real browser renders negative prompts, field limits, new taxonomy and arch
   await browser.viewport(360, true);
   await browser.send('Page.addScriptToEvaluateOnNewDocument', { source: `Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => { throw new Error('denied'); } } })` });
   await browser.navigate(server.origin, `document.querySelector('#result-count')?.textContent.includes('5') && document.querySelector('.hero-art')?.naturalWidth > 0`);
-  assert.ok((await browser.evaluate<string>('document.querySelector(".hero-credit").textContent')).includes('测试夹具 · 负面模板'));
+  assert.ok((await browser.evaluate<string>('document.querySelector(".hero-credit").textContent')).includes(built.prompts[0]!.title));
   assert.equal(await browser.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), true);
   await browser.navigate(`${server.origin}/?use_case=book-cover`, `${visibleIds}.length === 1`);
   assert.equal(await browser.evaluate('document.querySelector("[value=book-cover]").checked'), true);

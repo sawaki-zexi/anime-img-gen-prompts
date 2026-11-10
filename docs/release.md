@@ -2,7 +2,7 @@
 
 发布配置在 `release/production.json`，保留已创建的 Site `appgprj_6af28af93d9081918cccb09ace648204`。期望来源为 `https://anime-prompt-atelier.memorablestone1.chatgpt.site`，MCP 路径为 `/api/mcp`，健康检查为 `/health`。配置中的地址是发布目标；实际可达性、公开权限、平台版本及预算结果以 [验收记录](validation/issue-5-release.md) 为准。
 
-2026-11-10 已完成公开实验版部署：七条正式内容、插件 0.1.1、匿名端点与 ZIP 下载、真实 Git 安装、旧安装读取新内容、实际平台回退/恢复和受控长测均有记录。桌面端安装尚未验证，不能把当前状态称为所有 v1 门槛均完成。
+2026-11-10的七条种子内容与0.1.1发布是已保留的历史验收。随后用户要求删除这些助手示例，改为两条用户提供原文与配图。当前源码为两条/4张WebP、插件0.1.2；本轮实际发布另记在 [内容替换记录](validation/content-replacement.md)，旧报告不能替代。桌面端完整安装仍尚未验证。
 
 普通用户只访问公开画廊或安装发布插件，不需要源码仓库、Node.js、本地 MCP、认证密钥或后台进程。以下命令仅供维护者使用。
 
@@ -29,7 +29,7 @@ service-v1/
   build-receipt.json                  Worker 与 manifest 摘要、真实 preflight 状态
 ```
 
-`dist/server/index.js` 内嵌全部 HTML、脚本、CSS、12 张真实 WebP、按需正文与 manifest，不依赖运行时文件系统或独立本地服务。Sites 的 source helper 保存与部署这份 `dist`，来源源码与部署包必须对应同一候选。`.openai/hosting.json` 不使用 `static`，也不声明会占用保留 `/mcp` 路径的私有平台 MCP capability。保留 Astro；不改用其他框架。
+`dist/server/index.js` 内嵌全部 HTML、脚本、CSS、当前正式内容的配图与缩略图、按需正文与 manifest，不依赖运行时文件系统或独立本地服务。Sites 的 source helper 保存与部署这份 `dist`，来源源码与部署包必须对应同一候选。`.openai/hosting.json` 不使用 `static`，也不声明会占用保留 `/mcp` 路径的私有平台 MCP capability。保留 Astro；不改用其他框架。
 
 先由持有 Site 权限的维护者发布并设置公开访问，使用无 cookie、无认证的请求检查首页、`/health`、`/release.json` 和 `/api/mcp` 的三个真实工具。若平台不能提供该匿名端点，停止分发，记录平台限制并调整托管方案。构建成功和私有部署成功均不能替代匿名公开验收。
 

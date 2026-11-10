@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "id": "rough-crayon-character-redraw",
+      "prompt_sha256": "4c598d1565c7f25ecee154546af76d07501b9eadfedc1f6faad5dc82f89c3820",
+      "source_png_sha256": "48269c331a5effe75d0021f611cef579f3b00a835f8a9e6ebaf74efc2a12c1f4",
+      "image_webp_sha256": "e19689347048a7b1ff04c6f7331d0f758f1a68a8204b8c7a3e62f882e8df6830",
+      "thumbnail_sha256": "86f43e82d3d391bbd38773a97e177ce9ee60c757bd41ff682b379ffbd6036fee",
+      "width": 1254,
+      "height": 1254,
+      "thumbnail_width": 480,
+      "thumbnail_height": 480,
+      "decoded_rgba_sha256": "f6c60dc53416c61987abd7214d3ab00a26c863569e68c83101b2b4eeb7b54d11",
+      "decoded_pixels_equal": true,
+      "source_png_unchanged": true,
+      "generation_date": null
+    },
+    {
+      "id": "vacant-chibi-avatar-redraw",
+      "prompt_sha256": "3073a2f51b981ce5140338475f468cbfaa153099e2bc09eb8dc08928fdfab109",
+      "source_png_sha256": "7aeff084e94026d0e2b489de996af00470aed95f40dbf11f8e2244ebbb38f575",
+      "image_webp_sha256": "aa1645e422e07a9c65a43acea655bac3446a7d745ddcab6b82bb7b8ad017e800",
+      "thumbnail_sha256": "48cc0c7fe5fb4d491dd9fa3761e1907890486522750f1fc54bbcda099d97a451",
+      "width": 1254,
+      "height": 1254,
+      "thumbnail_width": 480,
+      "thumbnail_height": 480,
+      "decoded_rgba_sha256": "e4fd0ffb49c3e600b24d3b0edaa8c1e78546b4d47139dfcac08f078fe569e053",
+      "decoded_pixels_equal": true,
+      "source_png_unchanged": true,
+      "generation_date": null
+    }
+  ],
+  "removed_ids": [
+    "summer-anime-illustrator",
+    "mint-watercolor-avatar",
+    "stargazer-character-sheet",
+    "seaside-watercolor-station",
+    "sleepy-cat-four-panel",
+    "shiba-reaction-stickers",
+    "windchime-librarian-avatar"
+  ]
+}

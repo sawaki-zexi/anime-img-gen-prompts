@@ -16,15 +16,15 @@ test('all published purposes and aliases find their corresponding real content',
       assert.ok(result.data.items.some(item => item.use_cases.includes(term.id)), `${query} should find ${term.id}`);
     }
   }
-  assert.deepEqual(ids({ query: 'watercolor wallpaper' }), ['seaside-watercolor-station']);
-  assert.deepEqual(ids({ query: 'ＷＡＴＥＲＣＯＬＯＲ', use_cases: ['avatar'] }), ['mint-watercolor-avatar', 'windchime-librarian-avatar']);
+  assert.deepEqual(ids({ query: 'watercolor wallpaper' }), ['fixture-scenery']);
+  assert.deepEqual(ids({ query: 'ＷＡＴＥＲＣＯＬＯＲ', use_cases: ['avatar'] }), ['fixture-avatar']);
   assert.deepEqual(ids({ query: 'cherry clouds', use_cases: ['wallpaper'] }), [prompt.id]);
-  assert.deepEqual(ids({ query: 'hand-painted' }), ['mint-watercolor-avatar', 'seaside-watercolor-station', 'windchime-librarian-avatar']);
+  assert.deepEqual(ids({ query: 'hand-painted' }), ['fixture-avatar', 'fixture-scenery']);
   assert.equal(ids({ query: 'anime' })[0], prompt.id);
 });
 
 test('same-dimension OR and cross-dimension AND preserve deterministic relevance and ID ordering', () => {
-  assert.deepEqual(ids({ use_cases: ['avatar', 'scenery'], styles: ['watercolor'] }), ['mint-watercolor-avatar', 'seaside-watercolor-station', 'windchime-librarian-avatar']);
+  assert.deepEqual(ids({ use_cases: ['avatar', 'scenery'], styles: ['watercolor'] }), ['fixture-avatar', 'fixture-scenery']);
   assert.deepEqual(ids({ use_cases: ['avatar', 'scenery'], styles: ['retro-cel'] }), []);
   const all = searchPrompts(catalog, { limit: 20 }); assert.ok(all.ok);
   const orderedIds = catalog.prompts.map(item => item.id).sort();

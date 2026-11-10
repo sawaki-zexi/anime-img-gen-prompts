@@ -24,7 +24,7 @@ test('the authored example builds deterministically and exactly reproduces its r
     assert.equal(item.examples[0]!.model, null);
     assert.deepEqual(item.model_compatibility, []);
   }
-  const sticker = first.prompts.find(item => item.id === 'shiba-reaction-stickers')!;
+  const sticker = first.prompts.find(item => item.id === 'fixture-sticker')!;
   const metadata = await sharp(await readFile(path.join(files.publicDir, new URL(sticker.examples[0]!.image).pathname))).metadata();
   assert.equal(metadata.hasAlpha, true);
   await writeCatalog(first, files.directory);
@@ -61,7 +61,7 @@ test('content and image changes produce a new revision while historical generati
   assert.notEqual(changed.prompt_revision, prompt.prompt_revision);
   assert.notEqual(changedText.catalog_revision, catalog.catalog_revision);
   assert.equal(changed.examples[0]!.effective_prompt, prompt.examples[0]!.effective_prompt);
-  const imagePath = path.join(files.publicDir, 'images/summer-anime-illustrator.webp');
+  const imagePath = path.join(files.publicDir, 'images/fixture-wallpaper.webp');
   const bytes = await sharp(await readFile(imagePath)).webp({ quality: 80 }).toBuffer();
   await writeFile(imagePath, bytes);
   const changedImage = await buildCatalog(files);
@@ -72,8 +72,8 @@ test('base-path builds use matching public image and detail URLs', async t => {
   const files = await fixture(); t.after(files.cleanup);
   const built = await buildCatalog({ ...files, siteUrl: 'https://example.com', basePath: '/anime-prompts/' });
   const entry = built.prompts.find(item => item.id === prompt.id)!;
-  assert.equal(entry.url, 'https://example.com/anime-prompts/prompts/summer-anime-illustrator/');
-  assert.equal(entry.examples[0]!.image, 'https://example.com/anime-prompts/images/summer-anime-illustrator.webp');
+  assert.equal(entry.url, 'https://example.com/anime-prompts/prompts/fixture-wallpaper/');
+  assert.equal(entry.examples[0]!.image, 'https://example.com/anime-prompts/images/fixture-wallpaper.webp');
   await assert.rejects(buildCatalog({ ...files, siteUrl: 'https://example.com/nested/' }), /SITE_URL/);
 });
 
@@ -101,7 +101,7 @@ for (const [label, change, filename, expected] of invalidAuthoredCases) {
 
 test('build rejects an undecodable image', async t => {
   const files = await fixture(); t.after(files.cleanup);
-  await writeFile(path.join(files.publicDir, 'images/summer-anime-illustrator.webp'), 'not an image');
+  await writeFile(path.join(files.publicDir, 'images/fixture-wallpaper.webp'), 'not an image');
   await assert.rejects(buildCatalog(files), /unsupported image format/);
 });
 
@@ -123,13 +123,13 @@ test('a newly authored use case and alias enter the public index without a tool 
 test('archiving removes previously generated detail bodies and preserves only a stable archive notice', async t => {
   const files = await fixture(); t.after(files.cleanup);
   await writeCatalog(await buildCatalog(files), files.directory);
-  await files.edit((data, body) => ({ data: { ...data, status: 'archived', related_ids: ['seaside-watercolor-station'], archive_note: '测试归档说明' }, body }));
+  await files.edit((data, body) => ({ data: { ...data, status: 'archived', related_ids: ['fixture-scenery'], archive_note: '测试归档说明' }, body }));
   const built = await buildCatalog(files);
   await writeCatalog(built, files.directory);
   await assert.rejects(readFile(path.join(files.publicDir, 'data/prompts', `${prompt.id}.json`)), { code: 'ENOENT' });
   const index = await readFile(path.join(files.publicDir, 'catalog.json'), 'utf8');
   assert.ok(index.includes('测试归档说明')); assert.ok(!index.includes(prompt.template));
-  assert.deepEqual(built.archives[0]!.related_ids, ['seaside-watercolor-station']);
+  assert.deepEqual(built.archives[0]!.related_ids, ['fixture-scenery']);
 });
 
 test('build rejects ambiguous aliases, unknown models, invalid dimensions and archived replacement references', async t => {

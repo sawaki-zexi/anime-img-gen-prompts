@@ -40,7 +40,7 @@ export const exampleSchema = z.object({
   generator: z.string().min(1),
   model: z.string().nullable(),
   parameters: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
-  created_at: z.iso.date(),
+  created_at: z.iso.date().nullable(),
   provenance: z.string().min(1),
 }).strict();
 

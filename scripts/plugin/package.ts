@@ -86,7 +86,7 @@ export async function buildPlugin(options: { output: string; mcpUrl: string; gal
     longDescription: config.description, developerName: config.developerName, category: 'Design',
     capabilities: ['Read'], websiteURL: galleryUrl, brandColor: '#778AF8',
     composerIcon: './assets/icon.svg', logo: './assets/icon.svg',
-    defaultPrompt: ['画一张水彩动漫头像，主角是戴圆眼镜的成年旅行者。'],
+    defaultPrompt: ['把我提供的原角色参考图重绘成天然呆 Q 版头像，保留原角色设计。'],
   };
   const identity = { name: config.name, version: config.version, description: config.description, author: { name: config.developerName }, homepage: galleryUrl, repository: config.repository };
   const files = new Map<string, Buffer>();

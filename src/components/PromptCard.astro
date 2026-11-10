@@ -10,7 +10,7 @@ const status = item.model_compatibility.some(model => model.status === 'verified
 <article class="card prompt-card" data-prompt-id={item.id} data-prompt-revision={item.prompt_revision}>
   <a class="card-art-link" href={localPath(item.url)} aria-label={`查看${item.title}的提示词`}>
     <img src={localPath(item.cover.thumbnail)} width={item.cover.width} height={item.cover.height} alt={item.cover.alt} loading="lazy" decoding="async" />
-    <span class="art-label badge">✧ 真实生成示例</span><span class="art-arrow" aria-hidden="true">↗</span>
+    <span class="art-label badge">✧ 收录配图</span><span class="art-arrow" aria-hidden="true">↗</span>
   </a>
   <div class="card-body">
     <div class="card-heading"><h3><a href={localPath(item.url)}>{item.title}</a></h3><span class="language-label">{item.language.toUpperCase()}</span></div>

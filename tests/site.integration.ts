@@ -7,7 +7,7 @@ import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/cli
 import { createMcpHttpServer } from '../src/server/mcp.ts';
 import { createSearchCatalog, searchPrompts } from '../src/lib/catalog.ts';
 import { catalogSchema, detailDocumentSchema, getResultSchema, renderResultSchema, searchCatalogSchema, searchResultSchema } from '../src/lib/schema.ts';
-import { catalog, projectRoot } from './helpers.ts';
+import { productionCatalog as catalog, projectRoot } from './helpers.ts';
 
 function embeddedJson(html: string, id: string): unknown {
   const match = html.match(new RegExp(`<script\\b[^>]*id="${id}"[^>]*>([\\s\\S]*?)<\\/script>`));
@@ -45,7 +45,7 @@ test('all built details, lazy-copy documents and HTTP MCP share exact templates,
     const rendered = renderResultSchema.parse((await client.callTool({ name: 'render_prompt', arguments: { id: prompt.id, expected_revision: prompt.prompt_revision, variables: {} } })).structuredContent);
     assert.ok(rendered.ok); assert.equal(rendered.data.prompt, prompt.examples[0]!.effective_prompt);
   }
-  for (const input of [{}, { query: 'watercolor wallpaper' }, { query: '梗图' }, { use_cases: ['avatar', 'scenery'], styles: ['watercolor'] }, { model: 'unknown-model', verified_only: true }]) {
+  for (const input of [{}, { query: '重绘' }, { query: '蜡笔' }, { use_cases: ['avatar', 'character'], styles: ['rough-crayon', 'chibi'] }, { model: 'unknown-model', verified_only: true }]) {
     const wire = searchResultSchema.parse((await client.callTool({ name: 'search_prompts', arguments: input })).structuredContent);
     const browser = searchPrompts(publicIndex, input);
     assert.deepEqual(wire, browser);
