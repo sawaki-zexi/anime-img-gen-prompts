@@ -1,7 +1,7 @@
 import { animate } from 'motion/mini';
-import { searchPrompts } from '../lib/catalog.ts';
+import { renderPrompt, searchPrompts } from '../lib/catalog.ts';
 import { copyField } from '../lib/clipboard.ts';
-import { detailDocumentSchema, searchCatalogSchema, searchInputSchema, type SearchInput, type SearchResult } from '../lib/schema.ts';
+import { detailDocumentSchema, searchCatalogSchema, searchInputSchema, type Prompt, type SearchInput, type SearchResult } from '../lib/schema.ts';
 import { readSearchParams, writeSearchParams } from '../lib/search-url.ts';
 
 const catalog = searchCatalogSchema.parse(JSON.parse(document.querySelector('#catalog-data')!.textContent!));
@@ -22,7 +22,7 @@ const emptyReset = document.querySelector<HTMLButtonElement>('#empty-reset')!;
 const pagination = document.querySelector<HTMLElement>('.pagination')!;
 let current: Record<string, unknown> = {};
 let nextCursor: string | null = null;
-const details = new Map<string, Promise<string>>();
+const details = new Map<string, Promise<Prompt>>();
 const local = (url: string) => new URL(url).pathname;
 const label = (id: string) => [...catalog.taxonomy.use_cases, ...catalog.taxonomy.styles].find(term => term.id === id)?.label ?? id;
 
@@ -46,6 +46,15 @@ function card(item: Item) {
   const image = article.querySelector('img')!;
   image.src = local(item.cover.thumbnail); image.alt = item.cover.alt; image.width = item.cover.width; image.height = item.cover.height;
   article.querySelector('h3 a')!.textContent = item.title;
+  article.querySelector('.card-excerpt')!.textContent = item.excerpt;
+  article.dataset.excerpt = item.excerpt;
+  if (item.tag_excerpt) article.dataset.tagExcerpt = item.tag_excerpt;
+  const actions = article.querySelector('.card-actions')!;
+  actions.replaceChildren(...item.capabilities.formats.map((format, index) => {
+    const button = document.createElement('button'); button.type = 'button'; button.className = `btn ${index === 0 ? 'btn-primary' : 'btn-outline'} btn-sm card-copy`; button.dataset.copyFormat = format;
+    button.textContent = format === 'text' ? '复制完整提示词' : '复制标签';
+    button.setAttribute('aria-label', `复制${item.title}的${format === 'text' ? '完整提示词' : '标签'}`); return button;
+  }));
   const tags = article.querySelector('.tag-row')!;
   tags.replaceChildren(...[...item.use_cases, ...item.styles].map(id => {
     const badge = document.createElement('span'); badge.className = `badge ${item.styles.includes(id) ? 'style-badge' : 'badge-soft'}`; badge.textContent = label(id); return badge;
@@ -55,7 +64,6 @@ function card(item: Item) {
   const modelNote = article.querySelector<HTMLElement>('.model-note')!;
   modelNote.hidden = !current.model;
   modelNote.textContent = current.model ? `${current.model} · ${modelInfo ? modelStatus[modelInfo.status] : '兼容性未知'}` : '';
-  article.querySelector('button')!.setAttribute('aria-label', `复制${item.title}的模板原文`);
   article.querySelector('.copy-status')!.textContent = '';
   article.querySelector<HTMLElement>('.card-copy-fallback')!.hidden = true;
   return article;
@@ -138,9 +146,14 @@ grid.addEventListener('click', async event => {
       if (!response.ok) throw new Error('读取失败，请打开详情后重试。');
       const detail = detailDocumentSchema.parse(await response.json());
       if (detail.catalog_revision !== catalog.catalog_revision || detail.prompt.prompt_revision !== article.dataset.promptRevision) throw new Error('内容已更新，请刷新画廊后复制。');
-      return detail.prompt.template;
+      return detail.prompt;
     }));
-    field.value = await details.get(id)!;
+    const prompt = await details.get(id)!;
+    const format = button.dataset.copyFormat as 'text' | 'tags';
+    const rendered = renderPrompt({ ...catalog, prompts: [prompt] }, { id, expected_revision: prompt.prompt_revision, variables: {}, format });
+    if (!rendered.ok) throw new Error(`${rendered.error.message} 请打开详情填写后复制。`);
+    field.value = rendered.data.prompt;
+    article.querySelector('.card-excerpt')!.textContent = format === 'tags' && article.dataset.tagExcerpt ? article.dataset.tagExcerpt : article.dataset.excerpt ?? '';
     fallback.hidden = false;
     await copyField(field, status);
     if (document.activeElement !== field) fallback.hidden = true;

@@ -52,3 +52,44 @@ const prompts = fixtureRecords.map(({ authored, template }) => {
 }).sort((a, b) => a.id.localeCompare(b.id, 'en'));
 const payload = { schema_version: '1', site_url: site, base_path: '/', taxonomy: fixtureTaxonomy, prompts, archives: [] };
 export const fixtureCatalog = catalogSchema.parse({ ...payload, catalog_revision: hash(canonicalJson(payload)) });
+
+// Composition capabilities stay in isolated fixtures; the published user originals are fixed.
+const base = fixtureRecords[0]!.authored;
+const subject = 'the adult character in the attached reference image';
+const variable = (label: string, value: string) => ({ label, description: '隔离夹具中的可填写内容', required: true, default: value, max_length: 2000 });
+const composerDefinitions = [
+  {
+    id: 'fixture-dual', body: 'TEST FIXTURE portrait of {subject}. {prose_detail}.',
+    metadata: {
+      body_format: 'text', tag_template: 'test-only portrait, {subject}, {tag_detail}', negative_template: 'Avoid {text_negative}.', tag_negative_template: '{tag_negative}, test-only negative',
+      input_modes: ['reference-image', 'text'], character_variable: 'subject',
+      variables: { subject: variable('角色描述', subject), prose_detail: variable('全文细节', 'Use a framed composition'), tag_detail: variable('标签细节', 'flat colors'), text_negative: variable('全文负面', 'a blurred frame'), tag_negative: variable('标签负面', 'blur') },
+      customization: { allow_custom: true, presets: [
+        { id: 'happy', label: '开心', group: 'expression', values: { text: 'Give the character a happy smile.', tags: 'happy smile' } },
+        { id: 'angry', label: '生气', group: 'expression', values: { text: 'Give the character an angry expression.', tags: 'angry expression' } },
+        { id: 'blush', label: '脸红', values: { text: 'Add rosy cheeks.', tags: 'blush' } },
+      ] },
+    },
+  },
+  {
+    id: 'fixture-tags', body: 'test-only, geometric bird, flat colors, outlined frame, square canvas',
+    metadata: { body_format: 'tags', input_modes: ['direct'], variables: {}, customization: { allow_custom: true, presets: [{ id: 'pastel', label: '柔和配色', values: { tags: 'pastel palette' } }] } },
+  },
+  {
+    id: 'fixture-text-only', body: 'TEST FIXTURE character drawing of {subject}. Use a geometric border.',
+    metadata: { input_modes: ['text'], character_variable: 'subject', variables: { subject: variable('角色描述', 'an adult traveler with a blue coat') } },
+  },
+];
+export const compositionRecords = composerDefinitions.map(definition => {
+  const authored = authoredPromptSchema.parse({ ...base, id: definition.id, title: `隔离组合测试 · ${definition.id}`, ...definition.metadata, examples: [] });
+  const effective = definition.body.replace(/\{([a-z][a-z0-9_]*)\}/g, (_whole, name: string) => authored.variables[name]?.default ?? '');
+  authored.examples = [{ ...base.examples[0]!, effective_prompt: effective, variables: Object.fromEntries(Object.entries(authored.variables).map(([name, value]) => [name, value.default ?? ''])) }];
+  return { authored, template: definition.body };
+});
+const compositionPrompts = compositionRecords.map(({ authored, template }) => {
+  const assets = Object.fromEntries(authored.examples.flatMap(example => [example.image, example.thumbnail]).map(filename => [filename, hash(fixtureImages.get(filename)!)]));
+  const body = { ...authored, template, examples: authored.examples.map(example => ({ ...example, image: `${site}/${example.image}`, thumbnail: `${site}/${example.thumbnail}` })), url: `${site}/prompts/${authored.id}/` };
+  return { ...body, prompt_revision: hash(canonicalJson({ body, assets })) };
+}).sort((a, b) => a.id.localeCompare(b.id, 'en'));
+const compositionPayload = { ...payload, prompts: compositionPrompts };
+export const compositionCatalog = catalogSchema.parse({ ...compositionPayload, catalog_revision: hash(canonicalJson(compositionPayload)) });

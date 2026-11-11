@@ -4,7 +4,7 @@ title: 20cm 二次元棉花娃娃
 summary: 保留原角色设计的20cm棉花娃娃效果。实际生成必须提供原角色参考图（立绘）；收录配图不自动作为用户角色参考。
 language: zh
 status: published
-updated_at: '2026-11-10'
+updated_at: '2026-11-11'
 template_version: '1'
 use_cases:
   - character
@@ -21,6 +21,8 @@ keywords:
   - 角色
   - 立绘
   - redraw
+input_modes:
+  - reference-image
 variables: {}
 model_compatibility: []
 conditions:

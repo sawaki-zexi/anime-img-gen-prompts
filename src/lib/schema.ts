@@ -4,6 +4,13 @@ export const slugSchema = z.string().regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/);
 const variableName = z.string().regex(/^[a-z][a-z0-9_]*$/);
 const unicodeString = (limit: number) => z.string().refine(value => [...value].length <= limit, `最多 ${limit} 个 Unicode 字符`);
 const modelName = unicodeString(100).pipe(z.string().min(1)).refine(value => value.normalize('NFKC').trim().length > 0, '模型名称不能为空白');
+export const promptFormatSchema = z.enum(['text', 'tags']);
+export const inputModeSchema = z.enum(['reference-image', 'text', 'direct']);
+const formatValuesSchema = z.object({ text: unicodeString(2000).pipe(z.string().min(1)).optional(), tags: unicodeString(2000).pipe(z.string().min(1)).optional() }).strict();
+export const customizationSchema = z.object({
+  allow_custom: z.boolean(),
+  presets: z.array(z.object({ id: slugSchema, label: z.string().min(1), group: slugSchema.optional(), values: formatValuesSchema }).strict()).max(32),
+}).strict();
 
 export const variableSchema = z.object({
   label: z.string().min(1),
@@ -63,6 +70,13 @@ export const authoredPromptSchema = z.object({
   related_ids: z.array(slugSchema).default([]),
   archive_note: z.string().min(1).optional(),
   negative_template: z.string().min(1).optional(),
+  // Optional author declarations: never inject defaults into retained schema-1 snapshots.
+  body_format: promptFormatSchema.optional(),
+  tag_template: z.string().min(1).optional(),
+  tag_negative_template: z.string().min(1).optional(),
+  input_modes: z.array(inputModeSchema).min(1).max(3).optional(),
+  character_variable: variableName.optional(),
+  customization: customizationSchema.optional(),
 }).strict();
 
 export const promptSchema = authoredPromptSchema.extend({
@@ -113,9 +127,12 @@ export const renderInputSchema = z.object({
   expected_revision: z.string().min(1).max(100),
   variables: z.record(variableName, unicodeString(2000)).refine(value => Object.keys(value).length <= 32, '单次变量最多 32 项'),
   model: modelName.optional(),
+  format: promptFormatSchema.optional(),
+  input_mode: inputModeSchema.optional(),
+  additions: z.object({ preset_ids: z.array(slugSchema).max(32).optional(), custom: unicodeString(2000).optional() }).strict().optional(),
 }).strict();
 
-const errorCodeSchema = z.enum(['INVALID_INPUT', 'NOT_FOUND', 'REVISION_MISMATCH', 'MISSING_VARIABLES', 'INVALID_VARIABLES', 'INVALID_CURSOR', 'MODEL_INCOMPATIBLE']);
+const errorCodeSchema = z.enum(['INVALID_INPUT', 'NOT_FOUND', 'REVISION_MISMATCH', 'MISSING_VARIABLES', 'INVALID_VARIABLES', 'INVALID_CURSOR', 'MODEL_INCOMPATIBLE', 'FORMAT_UNSUPPORTED', 'INPUT_MODE_UNSUPPORTED', 'ADDITIONS_UNSUPPORTED', 'INVALID_ADDITIONS']);
 export const failureSchema = z.object({
   ok: z.literal(false),
   catalog_revision: z.string(),
@@ -127,6 +144,8 @@ export const failureSchema = z.object({
   }).strict(),
 }).strict();
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
+export const capabilitiesSchema = z.object({ formats: z.array(promptFormatSchema).min(1), input_modes: z.array(inputModeSchema).min(1), customization: z.boolean() }).strict();
+export type PromptCapabilities = z.infer<typeof capabilitiesSchema>;
 
 export const summarySchema = promptSchema.pick({
   id: true, prompt_revision: true, title: true, summary: true, use_cases: true,
@@ -134,9 +153,12 @@ export const summarySchema = promptSchema.pick({
 }).extend({
   cover: exampleSchema.pick({ image: true, thumbnail: true, alt: true, width: true, height: true }),
   match_reasons: z.array(z.string()),
+  excerpt: z.string(),
+  tag_excerpt: z.string().optional(),
+  capabilities: capabilitiesSchema,
 });
 
-// Search data contains unordered body words, never a usable full template or defaults.
+// Only a bounded, incomplete prefix and unordered body words; no usable full template or defaults.
 export const searchDocumentSchema = summarySchema.omit({ match_reasons: true }).extend({
   keywords: z.array(z.string()), body_terms: z.array(z.string()),
 }).strict();
@@ -159,6 +181,7 @@ export const renderDataSchema = z.object({
   variables: z.record(z.string(), z.string()),
   model_compatibility: z.array(compatibilitySchema),
   warnings: z.array(z.string()), source: sourceSchema,
+  format: promptFormatSchema, input_mode: inputModeSchema,
 }).strict();
 
 const resultSchema = <T extends z.ZodType>(data: T) => z.union([
@@ -166,7 +189,7 @@ const resultSchema = <T extends z.ZodType>(data: T) => z.union([
   failureSchema,
 ]);
 export const searchResultSchema = resultSchema(searchDataSchema);
-export const getResultSchema = resultSchema(promptSchema);
+export const getResultSchema = resultSchema(promptSchema.extend({ capabilities: capabilitiesSchema }));
 export const renderResultSchema = resultSchema(renderDataSchema);
 export type SearchResult = z.infer<typeof searchResultSchema>;
 export type GetResult = z.infer<typeof getResultSchema>;

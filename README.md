@@ -4,7 +4,7 @@
 
 [公开画廊](https://anime-prompt-atelier.memorablestone1.chatgpt.site/) · [插件接入与当前下载](https://anime-prompt-atelier.memorablestone1.chatgpt.site/install/) · [版本信息](https://anime-prompt-atelier.memorablestone1.chatgpt.site/release.json)
 
-当前源码只收录用户提供的「日系粗蜡笔角色涂鸦」、「天然呆大眼 Q 版头像」和「20cm 二次元棉花娃娃」三组完整原文与配图。三条都要求原角色参考图，收录效果图不自动作为用户角色参考；缺少参考图时先询问，不以示例人物代替用户角色。三条均为 `variables: {}`，天然呆头像条目的负面约束保留在原文正文中。
+当前源码只收录用户提供的「日系粗蜡笔角色涂鸦」、「天然呆大眼 Q 版头像」和「20cm 二次元棉花娃娃」三组完整原文与配图。三条在实际生成前都要求原角色参考图，缺少时先询问；仅检索或复制无需先交图。收录效果图不自动作为用户角色参考，不以示例人物代替用户角色。三条均为 `variables: {}`，天然呆头像条目的负面约束保留在原文正文中。
 
 生成工具、模型、版本、种子、生成日期和许可未提供，页面如实标记；用户提供配图的生成条件没有独立复验。此前助手添加的七条种子内容及14张图已从正式目录移除，旧ID不再公开读取，也不以归档方式保留。本轮证据见 [内容替换记录](docs/validation/content-replacement.md) 与 [原文/图像哈希](docs/validation/evidence/content-replacement-hashes.json)。历史记录仍保留在 [Issue #4](docs/validation/issue-4-plugin.md) 和 [Issue #5](docs/validation/issue-5-release.md)，不冒充本轮验证。
 
@@ -17,7 +17,7 @@ codex plugin marketplace add sawaki-zexi/anime-img-gen-prompts --ref plugin-rele
 codex plugin add anime-prompt-atelier@anime-atelier-plugins
 ```
 
-安装后开启新会话。已发布插件 **0.1.2** 保持原八文件与ZIP字节不变；本轮只增加远程内容，不改包或升级版本。实际生图前按选中模板的要求提供参考图，纯检索或复制仍可先交全文。实际下载、客户端支持范围与本轮发布结果以接入页和替换记录为准，未通过的客户端仍标实验或未验证；插件尚未进入官方公共目录。
+安装后开启新会话。已发布插件 **0.1.2** 保持原八文件与ZIP字节不变；本次源码插件升级为 **0.2.0**，新增按模板实际格式、角色输入方式与附加提示词声明组合的指导。旧插件仍可用原参数读取内容，新的 Skill 指导随新版本安装；单纯内容更新无需重装。实际生图前按选中方式确认参考图，纯检索或复制可先交提示词。实际下载和客户端支持范围以接入页及发布记录为准，CLI 仍为实验、桌面端尚未验证；插件未进入官方公共目录。
 
 有宿主图像工具时保留用户的角色输入和参考图，交接渲染后的完整原文；没有图像工具时交付提示词，不能声称已生成图片。MCP不上传参考图、不生图、不代理模型或保存用户密钥。
 
@@ -52,6 +52,8 @@ npm run dev:mcp
 
 先 `search_prompts({query:"重绘"})` 获取真实ID和修订，再 `get_prompt({id, expected_revision, include_examples:true})` 读取原文与条件，最后 `render_prompt({id, expected_revision, variables:{}})` 获取完整原文。当前三条没有模板变量，不得臆造 `subject`。
 
+卡片提供真实短摘录，点击复制才读取完整正文。详情按条目实际能力显示全文和/或标签复制；支持两种角色输入时才显示切换。可扩展条目将常用表情和自定义内容放在一个「附加提示词（选填）」区域，当前三条不显示或接受扩展。网页与 Agent 共享 `render_prompt` 的可选 `format`、`input_mode`、`additions:{preset_ids,custom}`，不推造标签或在渲染后另行拼接。字段、贡献示例与错误码见 [用法与组合契约](docs/prompt-composition.md)。
+
 检索按词表/别名、名称/关键词/简介、正文词项匹配；同维度OR、跨维度AND，同分稳定ID排序。默认5条、最多20条；查询最多256个Unicode字符。变量功能保留：最多32项、每项最多2000字符，且受声明限制。未声明变量、缺必填项、旧修订、过期游标、不兼容模型均有结构化失败。HTTP请求体默认128KiB；Host/Origin、频率、Retry-After、隐私日志和回退见 [发布说明](docs/release.md)。
 
 使用官方SDK v2，支持现代协议和legacy结构化结果。旧协议可能使用 `{result:…}` 包装。工具本身不包含Skill发现，不等于所有宿主自动调用均通过。
@@ -64,6 +66,6 @@ npm run dev:mcp
 
 同一次构建生成完整 `generated/catalog.json`、检索用 `public/catalog.json` 和按需 `public/data/prompts/<id>.json`。画廊与MCP使用相同快照，不逐查询拉GitHub，不执行内容脚本。生成产物不手工编辑或提交。
 
-`tests/fixtures/catalog-data.ts` 独立定义六类测试合成模板与Sharp几何像素，只在已登记清理的临时目录里构建。多用途、变量、分页、负面、透明图、归档、空库和1000条规模覆盖继续保留；不复制已移除的AI图片或完整提示词，不将测试内容放入正式目录。生产site与Chrome另行验证真实三条原文、参考图说明、未知日期、像素哈希与旧内容移除。
+`tests/fixtures/catalog-data.ts` 独立定义六类基础合成模板及三个组合能力夹具，使用Sharp几何像素，只在已登记清理的临时目录里构建。多用途、变量、分页、负面、透明图、归档、空库和1000条规模覆盖继续保留；不复制已移除的AI图片或完整提示词，不将测试内容放入正式目录。生产site与Chrome另行验证真实三条原文、参考图操作说明、未知日期、像素哈希与旧内容移除。
 
-公开更新、安装、回退、模型行为和平台权限须分别记录真实结果，自动测试不代替外部验收。规格见 [v0.5](docs/specs/anime-prompt-library-v1.md)，实施顺序见 [计划](docs/plans/v1-implementation.md)。
+公开更新、安装、回退、模型行为和平台权限须分别记录真实结果，自动测试不代替外部验收。规格见 [v0.6](docs/specs/anime-prompt-library-v1.md)，实施顺序见 [计划](docs/plans/v1-implementation.md)。

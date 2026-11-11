@@ -1,10 +1,35 @@
 import {
   getInputSchema, renderInputSchema, searchInputSchema,
-  type Catalog, type ErrorCode, type GetResult, type Prompt, type RenderResult, type SearchCatalog, type SearchResult, type Taxonomy,
+  type Catalog, type ErrorCode, type GetResult, type Prompt, type PromptCapabilities, type RenderResult, type SearchCatalog, type SearchResult, type Taxonomy,
 } from './schema.ts';
 
 export const placeholderPattern = /\{([a-z][a-z0-9_]*)\}/g;
 export const normalize = (value: string) => value.normalize('NFKC').toLocaleLowerCase('en-US').trim();
+
+export function promptCapabilities(prompt: Pick<Prompt, 'body_format' | 'tag_template' | 'input_modes' | 'customization'>): PromptCapabilities {
+  const primary = prompt.body_format ?? 'text';
+  return {
+    formats: primary === 'text' && prompt.tag_template ? ['text', 'tags'] : [primary],
+    input_modes: prompt.input_modes ?? ['direct'],
+    customization: !!prompt.customization && (prompt.customization.allow_custom || prompt.customization.presets.length > 0),
+  };
+}
+
+export function formatTemplate(prompt: Pick<Prompt, 'body_format' | 'template' | 'tag_template' | 'negative_template' | 'tag_negative_template'>, format: 'text' | 'tags') {
+  return format === (prompt.body_format ?? 'text')
+    ? { template: prompt.template, negative: prompt.negative_template }
+    : { template: prompt.tag_template!, negative: prompt.tag_negative_template };
+}
+
+export function templateVariables(template: string, negative?: string) {
+  return new Set([...`${template}\n${negative ?? ''}`.matchAll(placeholderPattern)].map(match => match[1]!));
+}
+
+// Always incomplete, even for short bodies. A search result cannot substitute for reading the entry.
+export function promptExcerpt(template: string) {
+  const characters = [...template];
+  return `${characters.slice(0, Math.min(150, Math.max(0, Math.floor(characters.length * 0.65)))).join('')}…`;
+}
 
 function failure(catalog: Pick<Catalog, 'catalog_revision'>, code: ErrorCode, message: string, details: Record<string, unknown> = {}) {
   return { ok: false as const, catalog_revision: catalog.catalog_revision, error: { code, message, details, retryable: false as const } };
@@ -30,7 +55,7 @@ export function getPrompt(catalog: Catalog, input: unknown): GetResult {
   if (parsed.data.expected_revision && parsed.data.expected_revision !== prompt.prompt_revision) {
     return failure(catalog, 'REVISION_MISMATCH', '提示词已更新，请重新读取当前修订。', { id: prompt.id, current_revision: prompt.prompt_revision });
   }
-  return { ok: true, catalog_revision: catalog.catalog_revision, data: { ...prompt, examples: parsed.data.include_examples ? prompt.examples.slice(0, 3) : [] } };
+  return { ok: true, catalog_revision: catalog.catalog_revision, data: { ...prompt, capabilities: promptCapabilities(prompt), examples: parsed.data.include_examples ? prompt.examples.slice(0, 3) : [] } };
 }
 
 export function renderPrompt(catalog: Catalog, input: unknown): RenderResult {
@@ -40,6 +65,24 @@ export function renderPrompt(catalog: Catalog, input: unknown): RenderResult {
   const found = getPrompt(catalog, { id, expected_revision });
   if (!found.ok) return found;
   const prompt = found.data;
+  const capabilities = promptCapabilities(prompt);
+  const format = parsed.data.format ?? prompt.body_format ?? 'text';
+  const input_mode = parsed.data.input_mode ?? capabilities.input_modes[0]!;
+  if (!capabilities.formats.includes(format)) return failure(catalog, 'FORMAT_UNSUPPORTED', '此模板没有所选格式。', { format, allowed: capabilities.formats });
+  if (!capabilities.input_modes.includes(input_mode)) return failure(catalog, 'INPUT_MODE_UNSUPPORTED', '此模板不支持所选使用方式。', { input_mode, allowed: capabilities.input_modes });
+  const ids = parsed.data.additions?.preset_ids ?? [];
+  const custom = parsed.data.additions?.custom ?? '';
+  if ((ids.length || custom !== '') && !capabilities.customization) return failure(catalog, 'ADDITIONS_UNSUPPORTED', '此模板未开放附加提示词。');
+  const selected = prompt.customization?.presets.filter(preset => ids.includes(preset.id)) ?? [];
+  const unknownIds = ids.filter(id => !selected.some(preset => preset.id === id));
+  const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
+  const conflicts = [...new Set(selected.flatMap(preset => preset.group && selected.filter(item => item.group === preset.group).length > 1 ? [preset.group] : []))];
+  const missingFormats = selected.filter(preset => preset.values[format] === undefined).map(preset => preset.id);
+  if (unknownIds.length || duplicateIds.length || conflicts.length || missingFormats.length || (custom !== '' && !prompt.customization?.allow_custom)) {
+    return failure(catalog, 'INVALID_ADDITIONS', '请检查附加提示词的选项和互斥组。', { unknown: unknownIds, duplicates: duplicateIds, conflicting_groups: conflicts, unavailable_presets: missingFormats, custom_allowed: prompt.customization?.allow_custom ?? false });
+  }
+  const selectedTemplate = formatTemplate(prompt, format);
+  const activeVariables = templateVariables(selectedTemplate.template, selectedTemplate.negative);
   const modelInfo = compatibility(prompt, catalog.taxonomy, model);
   if (modelInfo?.status === 'incompatible') return failure(catalog, 'MODEL_INCOMPATIBLE', modelInfo.note, { model });
 
@@ -49,8 +92,9 @@ export function renderPrompt(catalog: Catalog, input: unknown): RenderResult {
   const invalid: Record<string, string> = {};
   const resolved: Record<string, string> = {};
   for (const [name, spec] of Object.entries(prompt.variables)) {
+    if (!activeVariables.has(name) && !Object.hasOwn(variables, name)) continue;
     const value = Object.hasOwn(variables, name) ? variables[name]! : spec.default ?? '';
-    if (spec.required && !value.trim()) missing.push(name);
+    if (activeVariables.has(name) && spec.required && !value.trim()) missing.push(name);
     if ([...value].length > spec.max_length) invalid[name] = `最多 ${spec.max_length} 个 Unicode 字符`;
     if (spec.options && value !== '' && !spec.options.includes(value)) invalid[name] = '不在可选值中';
     resolved[name] = value;
@@ -64,9 +108,10 @@ export function renderPrompt(catalog: Catalog, input: unknown): RenderResult {
     ok: true, catalog_revision: catalog.catalog_revision,
     data: {
       id: prompt.id, prompt_revision: prompt.prompt_revision, url: prompt.url,
-      prompt: fill(prompt.template),
-      ...(prompt.negative_template ? { negative_prompt: fill(prompt.negative_template) } : {}),
+      prompt: [fill(selectedTemplate.template), ...selected.map(preset => preset.values[format]!), ...(custom !== '' ? [custom] : [])].join(format === 'tags' ? ', ' : '\n\n'),
+      ...(selectedTemplate.negative ? { negative_prompt: fill(selectedTemplate.negative) } : {}),
       variables: resolved, model_compatibility: prompt.model_compatibility, warnings, source: prompt.source,
+      format, input_mode,
     },
   };
 }
@@ -90,8 +135,10 @@ export function createSearchCatalog(catalog: Catalog): SearchCatalog {
         id: prompt.id, prompt_revision: prompt.prompt_revision, title: prompt.title, summary: prompt.summary,
         language: prompt.language, use_cases: prompt.use_cases, styles: prompt.styles,
         model_compatibility: prompt.model_compatibility, url: prompt.url, keywords: prompt.keywords,
+        excerpt: promptExcerpt(prompt.template), capabilities: promptCapabilities(prompt),
+        ...(prompt.tag_template ? { tag_excerpt: promptExcerpt(prompt.tag_template) } : {}),
         cover: { image: cover.image, thumbnail: cover.thumbnail, alt: cover.alt, width: cover.width, height: cover.height },
-        body_terms: [...new Set(normalize(prompt.template).match(/[\p{L}\p{N}_]+/gu) ?? [])].sort(),
+        body_terms: [...new Set(normalize(`${prompt.template}\n${prompt.tag_template ?? ''}`).match(/[\p{L}\p{N}_]+/gu) ?? [])].sort(),
       };
     }),
   };
@@ -154,6 +201,8 @@ export function searchPrompts(source: Catalog | SearchCatalog, input: unknown = 
       id: prompt.id, prompt_revision: prompt.prompt_revision, title: prompt.title, summary: prompt.summary,
       language: prompt.language, use_cases: prompt.use_cases, styles: prompt.styles, model_compatibility: prompt.model_compatibility, url: prompt.url,
       cover: prompt.cover,
+      excerpt: prompt.excerpt, capabilities: prompt.capabilities,
+      ...(prompt.tag_excerpt ? { tag_excerpt: prompt.tag_excerpt } : {}),
       match_reasons: query ? reasons : ['公开条目'],
     };
   });

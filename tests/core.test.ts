@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { getPrompt, renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
+import { getPrompt, promptCapabilities, renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
 import { singleCatalog as catalog, prompt } from './helpers.ts';
 
 const renderInput = { id: prompt.id, expected_revision: prompt.prompt_revision, variables: {} };
@@ -22,7 +22,7 @@ test('get returns examples only on request and enforces current revision', () =>
   const defaultDetail = getPrompt(catalog, { id: prompt.id });
   assert.ok(defaultDetail.ok); assert.deepEqual(defaultDetail.data.examples, []);
   const full = getPrompt(catalog, { id: prompt.id, expected_revision: prompt.prompt_revision, include_examples: true });
-  assert.ok(full.ok); assert.deepEqual(full.data, prompt);
+  assert.ok(full.ok); assert.deepEqual(full.data, { ...prompt, capabilities: promptCapabilities(prompt) });
   for (const result of [getPrompt(catalog, { id: 'not-found' }), renderPrompt(catalog, { ...renderInput, id: 'not-found' })]) {
     assert.ok(!result.ok); assert.equal(result.error.code, 'NOT_FOUND');
   }

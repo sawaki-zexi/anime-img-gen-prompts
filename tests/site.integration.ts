@@ -5,7 +5,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { createMcpHttpServer } from '../src/server/mcp.ts';
-import { createSearchCatalog, searchPrompts } from '../src/lib/catalog.ts';
+import { createSearchCatalog, promptCapabilities, searchPrompts } from '../src/lib/catalog.ts';
 import { catalogSchema, detailDocumentSchema, getResultSchema, renderResultSchema, searchCatalogSchema, searchResultSchema } from '../src/lib/schema.ts';
 import { productionCatalog as catalog, projectRoot } from './helpers.ts';
 
@@ -41,7 +41,7 @@ test('all built details, lazy-copy documents and HTTP MCP share exact templates,
     const copy = detailDocumentSchema.parse(JSON.parse(await readFile(path.join(projectRoot, 'dist/data/prompts', `${prompt.id}.json`), 'utf8')));
     assert.deepEqual(copy.prompt, prompt); assert.equal(copy.catalog_revision, catalog.catalog_revision);
     const fetched = getResultSchema.parse((await client.callTool({ name: 'get_prompt', arguments: { id: prompt.id, include_examples: true } })).structuredContent);
-    assert.ok(fetched.ok); assert.deepEqual(fetched.data, prompt);
+    assert.ok(fetched.ok); assert.deepEqual(fetched.data, { ...prompt, capabilities: promptCapabilities(prompt) });
     const rendered = renderResultSchema.parse((await client.callTool({ name: 'render_prompt', arguments: { id: prompt.id, expected_revision: prompt.prompt_revision, variables: {} } })).structuredContent);
     assert.ok(rendered.ok); assert.equal(rendered.data.prompt, prompt.examples[0]!.effective_prompt);
   }

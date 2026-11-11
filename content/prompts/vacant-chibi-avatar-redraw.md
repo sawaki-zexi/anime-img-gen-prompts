@@ -4,7 +4,7 @@ title: 天然呆大眼 Q 版头像
 summary: 大眼天然呆表情与扁平液滴状嘴巴的 Q 版头像重绘。必须提供原角色参考图；收录配图不自动作为用户角色参考。
 language: zh
 status: published
-updated_at: '2026-11-10'
+updated_at: '2026-11-11'
 template_version: '1'
 use_cases:
   - avatar
@@ -20,11 +20,13 @@ keywords:
   - chibi
   - avatar
   - redraw
+input_modes:
+  - reference-image
 variables: {}
 model_compatibility: []
 conditions:
-  - 必须提供原角色参考图，保留用户指定角色的设计与特征。
-  - 收录配图用于展示效果，不自动作为用户角色参考；缺少参考图时应先询问。
+  - 实际生成或重绘前确认原角色参考图，保留用户指定角色的设计与特征。
+  - 收录配图用于展示效果，不自动作为用户角色参考；实际生成或重绘前确认原角色参考图，仅检索或复制无需先交图。
   - 生成工具、底层模型、版本、种子和生成日期均未提供；配图的生成条件未经独立复验。
 source:
   author: 用户提供

@@ -5,18 +5,19 @@ import { get as httpGet } from 'node:http';
 import { Client, INVALID_PARAMS, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { AjvJsonSchemaValidator } from '@modelcontextprotocol/client/validators/ajv';
 import { createMcpHttpServer } from '../src/server/mcp.ts';
-import { createSearchCatalog, getPrompt, renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
+import { createSearchCatalog, getPrompt, promptCapabilities, renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
 import {
   failureSchema, getInputSchema, getResultSchema, renderInputSchema, renderResultSchema,
   searchInputSchema, searchResultSchema,
 } from '../src/lib/schema.ts';
 import { catalog, prompt } from './helpers.ts';
+import { compositionCatalog } from './fixtures/catalog-data.ts';
 
 // https://fetch.spec.whatwg.org/#port-blocking — an OS-assigned port can still be forbidden by Fetch.
 const fetchBlockedPorts = new Set([0, 1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95, 101, 102, 103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137, 139, 143, 161, 179, 389, 427, 465, 512, 513, 514, 515, 526, 530, 531, 532, 540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993, 995, 1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080]);
 
-async function start() {
-  const app = createMcpHttpServer(catalog);
+async function start(source = catalog) {
+  const app = createMcpHttpServer(source);
   const rejected: number[] = [];
   try {
     for (let attempt = 1; attempt <= 8; attempt++) {
@@ -97,7 +98,7 @@ test('real Streamable HTTP client discovers typed tools and calls search → get
   const detailResponse = await call('get_prompt', { id: item.id, expected_revision: item.prompt_revision, include_examples: true });
   const detail = getResultSchema.parse(detailResponse.structuredContent);
   assert.ok(detail.ok); assert.deepEqual(detail, getPrompt(catalog, { id: item.id, expected_revision: item.prompt_revision, include_examples: true }));
-  assert.deepEqual(detail.data, prompt);
+  assert.deepEqual(detail.data, { ...prompt, capabilities: promptCapabilities(prompt) });
   const args = { id: item.id, expected_revision: detail.data.prompt_revision, variables: { subject: 'an adult anime traveler holding a sketchbook' } };
   const renderedResponse = await call('render_prompt', args);
   const rendered = renderResultSchema.parse(renderedResponse.structuredContent);
@@ -153,6 +154,46 @@ test('legacy MCP HTTP clients receive valid SDK-projected schemas and the same b
   const structured = response.structuredContent as { result?: unknown };
   const result = getResultSchema.parse(structured.result ?? structured);
   assert.deepEqual(result, getPrompt(catalog, { id: prompt.id }));
+});
+
+test('modern and legacy HTTP clients discover capabilities and share exact format, mode and addition behavior', async t => {
+  const app = await start(compositionCatalog); t.after(() => app.close());
+  const dual = compositionCatalog.prompts.find(item => item.id === 'fixture-dual')!;
+  for (const mode of ['modern', 'legacy'] as const) {
+    const client = new Client({ name: `${mode}-composition`, version: '1' }, { versionNegotiation: { mode: mode === 'modern' ? { pin: '2026-07-28' } : 'legacy' } });
+    t.after(() => client.close()); await client.connect(new StreamableHTTPClientTransport(new URL(`${app.origin}/mcp`)));
+    const { tools } = await client.listTools();
+    const call = async (name: string, args: Record<string, unknown>) => {
+      const response = await client.callTool({ name, arguments: args });
+      const checked = validator.getValidator(tools.find(tool => tool.name === name)!.outputSchema!)(response.structuredContent); assert.ok(checked.valid, checked.errorMessage);
+      const value = response.structuredContent as { result?: unknown };
+      return { response, value: value.result ?? value };
+    };
+    const found = searchResultSchema.parse((await call('search_prompts', {})).value); assert.ok(found.ok);
+    assert.deepEqual(found.data.items.find(item => item.id === dual.id)!.capabilities.formats, ['text', 'tags']);
+    const detail = getResultSchema.parse((await call('get_prompt', { id: dual.id, expected_revision: dual.prompt_revision })).value); assert.ok(detail.ok);
+    assert.deepEqual(detail.data.customization, dual.customization);
+    const base = { id: dual.id, expected_revision: detail.data.prompt_revision, variables: { subject: 'an adult traveler 😀 $& {subject}' } };
+    for (const args of [base, { ...base, format: 'text', input_mode: 'text', additions: { preset_ids: ['happy', 'blush'], custom: '(blue eyes:1.2)\n字面 {subject} $&' } }, { ...base, format: 'tags', input_mode: 'reference-image', additions: { preset_ids: ['angry'], custom: '{literal}' } }]) {
+      const { response, value } = await call('render_prompt', args);
+      assert.equal(response.isError, false); assert.deepEqual(renderResultSchema.parse(value), renderPrompt(compositionCatalog, args));
+    }
+    for (const [extra, code] of [
+      [{ format: 'unknown' }, 'INVALID_INPUT'],
+      [{ input_mode: 'direct' }, 'INPUT_MODE_UNSUPPORTED'],
+      [{ additions: { custom: '😀'.repeat(2001) } }, 'INVALID_INPUT'],
+      [{ additions: { preset_ids: ['invented'] } }, 'INVALID_ADDITIONS'],
+      [{ additions: { preset_ids: ['happy', 'angry'] } }, 'INVALID_ADDITIONS'],
+      [{ additions: { preset_ids: [], unknown: true } }, 'INVALID_INPUT'],
+    ] as const) {
+      const { response, value } = await call('render_prompt', { ...base, ...extra }); assert.equal(response.isError, true);
+      const failure = failureSchema.parse(value); assert.equal(failure.error.code, code); assert.deepEqual(failure, renderPrompt(compositionCatalog, { ...base, ...extra }));
+    }
+    const textOnly = compositionCatalog.prompts.find(item => item.id === 'fixture-text-only')!;
+    for (const [extra, code] of [[{ format: 'tags' }, 'FORMAT_UNSUPPORTED'], [{ additions: { custom: 'happy' } }, 'ADDITIONS_UNSUPPORTED']] as const) {
+      const { response, value } = await call('render_prompt', { id: textOnly.id, expected_revision: textOnly.prompt_revision, variables: {}, ...extra }); assert.equal(response.isError, true); assert.equal(failureSchema.parse(value).error.code, code);
+    }
+  }
 });
 
 for (const mode of ['modern', 'legacy'] as const) {

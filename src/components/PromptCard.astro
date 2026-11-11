@@ -13,9 +13,10 @@ const label = (id: string) => [...searchCatalog.taxonomy.use_cases, ...searchCat
   <div class="card-body">
     <div class="card-heading"><h3><a href={localPath(item.url)}>{item.title}</a></h3></div>
     <div class="tag-row">{item.use_cases.map(id => <span class="badge badge-soft">{label(id)}</span>)}{item.styles.map(id => <span class="badge style-badge">{label(id)}</span>)}</div>
+    <p class="card-excerpt">{item.excerpt}</p>
     <p class="model-note" hidden></p>
-    <div class="card-actions"><button class="btn btn-primary btn-sm card-copy" type="button" aria-label={`复制${item.title}的模板原文`}>复制</button></div>
+    <div class="card-actions">{item.capabilities.formats.map((format, index) => <button class:list={['btn', index === 0 ? 'btn-primary' : 'btn-outline', 'btn-sm', 'card-copy']} type="button" data-copy-format={format} aria-label={`复制${item.title}的${format === 'text' ? '完整提示词' : '标签'}`}>{format === 'text' ? '复制完整提示词' : '复制标签'}</button>)}</div>
     <span class="copy-status" role="status" aria-live="polite"></span>
-    <label class="card-copy-fallback" hidden>模板原文（手动复制）<textarea class="textarea prompt-text" rows="5" readonly></textarea></label>
+    <label class="card-copy-fallback" hidden>提示词（手动复制）<textarea class="textarea prompt-text" rows="5" readonly></textarea></label>
   </div>
 </article>

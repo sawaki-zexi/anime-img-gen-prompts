@@ -1,11 +1,15 @@
 ---
 import { catalog, localPath, sitePath, jsonForScript } from '../lib/site.ts';
-import { renderPrompt } from '../lib/catalog.ts';
+import { promptCapabilities, renderPrompt } from '../lib/catalog.ts';
 import type { Prompt } from '../lib/schema.ts';
 interface Props { prompt: Prompt; }
 const { prompt } = Astro.props;
 const example = prompt.examples[0]!;
 const hasVariables = Object.keys(prompt.variables).length > 0;
+const capabilities = promptCapabilities(prompt);
+const initialMode = capabilities.input_modes[0]!;
+const hasEditor = hasVariables || capabilities.customization || capabilities.formats.length > 1 || capabilities.input_modes.length > 1;
+const usage = { 'reference-image': '在生图工具中添加你的角色图片，再粘贴下面的提示词。', text: '填写角色描述，再把下面的提示词粘贴到生图工具中。', direct: '复制即可使用。' };
 const initial = renderPrompt(catalog, { id: prompt.id, expected_revision: prompt.prompt_revision, variables: {} });
 const label = (id: string) => [...catalog.taxonomy.use_cases, ...catalog.taxonomy.styles, ...catalog.taxonomy.models].find(term => term.id === id)?.label ?? id;
 const statuses = { verified: '已验证', declared: '作者声明', unknown: '未知', incompatible: '明确不兼容' };
@@ -31,23 +35,30 @@ const readableParameters = Object.entries(example.parameters).map(([key, value])
       </details>
     </div>
     <div class="detail-editor-column">
-      {hasVariables && <section class="card editor-card" aria-labelledby="editor-title">
-        <div class="panel-heading"><h2 id="editor-title">填写变量</h2></div><p class="panel-description">{prompt.summary}</p>
-        <form id="variables-form" novalidate>
+      <section class:list={['card', hasEditor ? 'editor-card' : 'original-card']} aria-labelledby="editor-title">
+        <div class="panel-heading"><h2 id="editor-title">提示词</h2></div>
+        {capabilities.input_modes.length > 1 && <fieldset class="input-mode-choice" id="input-mode-choice"><legend>你有角色图吗？</legend>{capabilities.input_modes.map((mode, index) => <label class="mode-option"><input class="radio radio-sm" type="radio" name="input-mode" value={mode} checked={index === 0} />{mode === 'reference-image' ? '我有角色图' : '我用文字描述'}</label>)}</fieldset>}
+        <p class="panel-description" id="usage-guide" data-input-mode={initialMode}>{usage[initialMode]}</p>
+        {hasVariables && <form id="variables-form" novalidate>
           {Object.entries(prompt.variables).map(([name, variable]) => <div class="variable-field">
-            <label class="label" for={`variable-${name}`}>{variable.label}{variable.required && <span class="required-label">必填</span>}</label>
+            <label class="label" for={`variable-${name}`}>{name === prompt.character_variable ? '角色描述' : variable.label}{variable.required && <span class="required-label">必填</span>}</label>
             {variable.options ? <select class="select" id={`variable-${name}`} name={name} required={variable.required} aria-describedby={`help-${name} error-${name}`} data-variable={name}>
               {(!variable.required || variable.default === undefined) && <option value="">{variable.required ? '请选择' : '不填写'}</option>}
               {variable.options.map(value => <option value={value} selected={value === variable.default}>{value}</option>)}
-            </select> : <textarea class="textarea" id={`variable-${name}`} name={name} rows="3" required={variable.required} aria-describedby={`help-${name} error-${name}`} data-variable={name}>{variable.default ?? ''}</textarea>}
+            </select> : <textarea class="textarea" id={`variable-${name}`} name={name} rows="3" required={variable.required} placeholder={name === prompt.character_variable ? '例如：银发、蓝眼睛，穿着深蓝外套的成年角色' : undefined} aria-describedby={`help-${name} error-${name}`} data-variable={name}>{variable.default ?? ''}</textarea>}
             <p class="field-help" id={`help-${name}`}>{variable.description}（最多 {variable.max_length} 个字符）</p><p class="field-error" id={`error-${name}`} hidden></p>
           </div>)}
           <button class="btn btn-ghost btn-sm reset-variables" type="reset">恢复默认</button>
-        </form>
-        <div class="render-heading"><h3>提示词</h3></div><p class="alert validation-error" id="render-error" role="alert" hidden></p><label class="sr-only" for="rendered-prompt">填写后的正向提示词</label><textarea class="textarea prompt-text" id="rendered-prompt" readonly rows="9">{initial.ok ? initial.data.prompt : ''}</textarea><div class="copy-row"><button class="btn btn-primary" id="copy-rendered" type="button" disabled={!initial.ok}>复制</button><span class="copy-status" id="render-copy-status" role="status" aria-live="polite"></span></div>
-        {prompt.negative_template && <div class="negative-section"><div class="render-heading"><h3>负面提示词</h3></div><label class="sr-only" for="rendered-negative">填写后的负面提示词</label><textarea class="textarea prompt-text" id="rendered-negative" readonly rows="4">{initial.ok ? initial.data.negative_prompt : ''}</textarea><div class="copy-row"><button class="btn btn-outline" id="copy-rendered-negative" type="button" disabled={!initial.ok}>复制负面提示词</button><span class="copy-status" id="negative-copy-status" role="status" aria-live="polite"></span></div></div>}
-      </section>}
-      <section class="card original-card" aria-labelledby="original-title"><div class="panel-heading"><h2 id="original-title">{hasVariables ? '模板原文' : '提示词'}</h2></div>{!hasVariables && <p class="panel-description">{prompt.summary}</p>}<label class="sr-only" for="original-prompt">提示词原文</label><textarea class="textarea prompt-text" id="original-prompt" readonly rows={hasVariables ? 7 : 14}>{prompt.template}</textarea><div class="copy-row"><button class:list={['btn', hasVariables ? 'btn-outline' : 'btn-primary']} id="copy-original" type="button">{hasVariables ? '复制原文' : '复制'}</button><span class="copy-status" id="original-copy-status" role="status" aria-live="polite"></span></div>{prompt.negative_template && <div class="negative-section"><label class="label" for="original-negative">负面原文</label><textarea class="textarea prompt-text" id="original-negative" readonly rows="4">{prompt.negative_template}</textarea><div class="copy-row"><button class="btn btn-outline" id="copy-original-negative" type="button">复制负面原文</button><span class="copy-status" id="original-negative-copy-status" role="status" aria-live="polite"></span></div></div>}<noscript><p class="alert">启用 JavaScript 使用复制按钮，或直接选择原文复制。</p></noscript></section>
+        </form>}
+        {capabilities.customization && <section class="additions-panel" id="additions-panel" aria-labelledby="additions-title"><h3 id="additions-title">附加提示词（选填）</h3><div class="preset-options">{prompt.customization!.presets.map(preset => <button class="btn btn-outline btn-sm preset-option" type="button" data-preset-id={preset.id} aria-pressed="false">{preset.label}</button>)}</div>{prompt.customization!.allow_custom && <><label class="label" for="custom-additions">自定义内容</label><textarea class="textarea" id="custom-additions" rows="3" placeholder="还想加些什么？可以直接填写提示词或标签。" aria-describedby="custom-additions-help"></textarea><p class="field-help" id="custom-additions-help">按原样加入提示词，最多 2,000 个字符。</p></>}<button class="btn btn-ghost btn-sm" id="clear-additions" type="button" hidden>清除附加内容</button></section>}
+        {capabilities.formats.length > 1 && <label class="format-choice" for="prompt-format">提示词格式<select class="select select-sm" id="prompt-format">{capabilities.formats.map(format => <option value={format}>{format === 'text' ? '全文' : '标签'}</option>)}</select></label>}
+        <p class="alert validation-error" id="render-error" role="alert" hidden></p>
+        <label class="sr-only" for={hasEditor ? 'rendered-prompt' : 'original-prompt'}>可复制的提示词</label><textarea class="textarea prompt-text" id={hasEditor ? 'rendered-prompt' : 'original-prompt'} readonly rows={hasEditor ? 9 : 14}>{initial.ok ? initial.data.prompt : ''}</textarea>
+        <div class="copy-row">{capabilities.formats.map((format, index) => <button class:list={['btn', index === 0 ? 'btn-primary' : 'btn-outline']} id={index === 0 ? hasEditor ? 'copy-rendered' : 'copy-original' : 'copy-tags'} data-copy-format={format} type="button" disabled={!initial.ok}>{format === 'text' ? '复制完整提示词' : '复制标签'}</button>)}<span class="copy-status" id={hasEditor ? 'render-copy-status' : 'original-copy-status'} role="status" aria-live="polite"></span></div>
+        {(prompt.negative_template || prompt.tag_negative_template) && <div class="negative-section" id="negative-section" hidden={!initial.ok || !initial.data.negative_prompt}><div class="render-heading"><h3>负面提示词</h3></div><label class="sr-only" for="rendered-negative">负面提示词</label><textarea class="textarea prompt-text" id="rendered-negative" readonly rows="4">{initial.ok ? initial.data.negative_prompt : ''}</textarea><div class="copy-row"><button class="btn btn-outline" id="copy-rendered-negative" type="button" disabled={!initial.ok}>复制负面提示词</button><span class="copy-status" id="negative-copy-status" role="status" aria-live="polite"></span></div></div>}
+        {hasVariables && <details class="template-original"><summary>查看模板原文</summary><label class="sr-only" for="original-prompt">模板原文</label><textarea class="textarea prompt-text" id="original-prompt" readonly rows="7">{prompt.template}</textarea><div class="copy-row"><button class="btn btn-outline btn-sm" id="copy-original" type="button">复制模板原文</button><span class="copy-status" id="original-copy-status" role="status" aria-live="polite"></span></div>{prompt.negative_template && <div class="negative-section"><label class="label" for="original-negative">负面原文</label><textarea class="textarea prompt-text" id="original-negative" readonly rows="4">{prompt.negative_template}</textarea><div class="copy-row"><button class="btn btn-outline btn-sm" id="copy-original-negative" type="button">复制负面原文</button><span class="copy-status" id="original-negative-copy-status" role="status" aria-live="polite"></span></div></div>}</details>}
+        <noscript><p class="alert">启用 JavaScript 使用填写与复制功能，或直接选择提示词复制。</p></noscript>
+      </section>
       {prompt.related_ids.length > 0 && <section class="card related-card"><h2>相关提示词</h2><ul>{prompt.related_ids.map(id => { const related = catalog.prompts.find(item => item.id === id)!; return <li><a href={localPath(related.url)}>{related.title}</a></li>; })}</ul></section>}
     </div>
   </div>

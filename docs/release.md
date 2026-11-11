@@ -2,7 +2,7 @@
 
 发布配置在 `release/production.json`，保留已创建的 Site `appgprj_6af28af93d9081918cccb09ace648204`。期望来源为 `https://anime-prompt-atelier.memorablestone1.chatgpt.site`，MCP 路径为 `/api/mcp`，健康检查为 `/health`。配置中的地址是发布目标；实际可达性、公开权限、平台版本及预算结果以 [验收记录](validation/issue-5-release.md) 为准。
 
-2026-11-10的七条种子内容与0.1.1发布是已保留的历史验收。随后用户要求删除这些助手示例，改为三条用户提供原文与配图。当前源码为三条/6张WebP、插件0.1.2；本轮实际发布另记在 [内容替换记录](validation/content-replacement.md)，旧报告不能替代。桌面端完整安装仍尚未验证。
+2026-11-10的七条种子内容与0.1.1发布是已保留的历史验收。随后用户要求删除这些助手示例，改为三条用户提供原文与配图，发布0.1.2，结果见 [内容替换记录](validation/content-replacement.md)。当前源码仍为三条/6张WebP，新增可选组合契约与0.2.0插件/服务元信息；发布新包时使用新目录，不覆盖0.1.2和任何冻结快照或报告。[契约与贡献说明](prompt-composition.md) 记录兼容方式。真实新版本安装和模型评测另行验收；桌面端完整安装仍尚未验证。
 
 普通用户只访问公开画廊或安装发布插件，不需要源码仓库、Node.js、本地 MCP、认证密钥或后台进程。以下命令仅供维护者使用。
 

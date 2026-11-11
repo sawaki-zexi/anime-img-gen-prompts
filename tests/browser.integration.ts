@@ -3,13 +3,14 @@ import { cp, copyFile, mkdir, readFile, symlink, writeFile } from 'node:fs/promi
 import path from 'node:path';
 import { test } from 'node:test';
 import { buildCatalog, writeCatalog } from '../src/content/build.ts';
-import { searchPrompts } from '../src/lib/catalog.ts';
+import { renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
 import { readSearchParams } from '../src/lib/search-url.ts';
 import { runProcess } from './browser-helper.ts';
 import { browserTestResources } from './browser-resources.ts';
 import { catalog, productionCatalog, fixture, projectRoot, prompt } from './helpers.ts';
 import type { Catalog } from '../src/lib/schema.ts';
 import { syntheticCatalog } from '../benchmarks/fixture.ts';
+import { compositionCatalog } from './fixtures/catalog-data.ts';
 
 const visibleIds = `Array.from(document.querySelectorAll('#prompt-grid [data-prompt-id]'), item => item.dataset.promptId)`;
 
@@ -46,6 +47,14 @@ test('real production gallery preserves full images and copies all user original
   await browser.tabTo('.theme-toggle'); await browser.key('Enter');
   await browser.wait(`document.documentElement.dataset.theme === 'anime-light'`);
   for (const prompt of productionCatalog.prompts) {
+    await browser.navigate(server.origin, `${visibleIds}.length === ${productionCatalog.prompts.length}`);
+    const selector = `[data-prompt-id="${prompt.id}"]`;
+    const excerpt = await browser.evaluate<string>(`document.querySelector(${JSON.stringify(selector + ' .card-excerpt')}).textContent`);
+    assert.ok(prompt.template.startsWith(excerpt.slice(0, -1))); assert.ok(excerpt.length < prompt.template.length);
+    assert.equal(await browser.evaluate(`document.querySelectorAll(${JSON.stringify(selector + ' [data-copy-format]')}).length`), 1);
+    await browser.click(selector + ' .card-copy');
+    await browser.wait(`document.querySelector(${JSON.stringify(selector + ' .copy-status')}).textContent.includes('已复制')`);
+    assert.equal((await browser.evaluate<string>('navigator.clipboard.readText()')).replaceAll('\r\n', '\n'), prompt.template);
     await browser.navigate(`${server.origin}/prompts/${prompt.id}/`, `document.querySelector('#original-prompt')?.value.length > 0`);
     await browser.wait(`document.querySelector('.detail-art img')?.naturalWidth > 0`);
     const dimensions = await browser.evaluate(`(() => { const image = document.querySelector('.detail-art img'); return { width: image.naturalWidth, height: image.naturalHeight, fit: getComputedStyle(image).objectFit, boxWidth: image.getBoundingClientRect().width, boxHeight: image.getBoundingClientRect().height }; })()`);
@@ -55,6 +64,9 @@ test('real production gallery preserves full images and copies all user original
     assert.equal(await browser.evaluate('document.querySelector("#variables-form") || document.querySelector("#rendered-prompt")'), null);
     assert.equal(await browser.evaluate('document.querySelectorAll(".detail-workspace textarea").length'), 1);
     assert.equal(await browser.evaluate('document.querySelectorAll(".detail-workspace button").length'), 1);
+    assert.equal(await browser.evaluate('document.querySelector("#usage-guide").textContent'), '在生图工具中添加你的角色图片，再粘贴下面的提示词。');
+    assert.equal(await browser.evaluate('document.querySelector("#input-mode-choice, #additions-panel, [data-copy-format=tags], input[type=file]")'), null);
+    assert.equal(await browser.evaluate('document.querySelector("#copy-original").textContent'), '复制完整提示词');
     assert.equal(await browser.evaluate('document.querySelector(".source-card").open'), false);
     await browser.tabTo('.source-card > summary'); await browser.key('Enter');
     await browser.wait(`document.querySelector('.source-card').open`);
@@ -158,6 +170,7 @@ test('real mobile browser follows keyboard filters, pagination, share URLs, deta
   assert.equal(await browser.evaluate('document.querySelector("#rendered-prompt").value'), '');
   await browser.click('.reset-variables'); await browser.wait(`!document.querySelector('#copy-rendered').disabled`);
   await browser.evaluate(`Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new Error('denied'); } } })`);
+  await browser.click('.template-original > summary');
   await browser.tabTo('#copy-original'); await browser.key('Enter');
   await browser.wait(`document.activeElement.id === 'original-prompt'`);
   assert.equal(await browser.evaluate('document.activeElement.selectionEnd - document.activeElement.selectionStart'), await browser.evaluate('document.activeElement.value.length'));
@@ -241,6 +254,7 @@ test('real browser renders negative prompts, field limits, new taxonomy and arch
   await browser.tabTo('#copy-rendered-negative'); await browser.key('Enter');
   await browser.wait(`document.activeElement.id === 'rendered-negative'`);
   assert.equal(await browser.evaluate('document.activeElement.value'), 'avoid changed\nno captions');
+  await browser.click('.template-original > summary');
   await browser.tabTo('#copy-original-negative'); await browser.key('Enter');
   await browser.wait(`document.activeElement.id === 'original-negative'`);
   assert.equal(await browser.evaluate('document.activeElement.value'), 'avoid {subject}\nno captions');
@@ -275,5 +289,101 @@ test('an empty published catalog still builds a usable homepage without a hero r
   await browser.wait(`document.querySelector('#applied-filters').textContent.includes('avatar')`);
   assert.equal(await browser.evaluate(visibleIds).then(items => items.length), 0);
   assert.equal(server.requests.filter(value => value.endsWith('.webp')).length, 0);
+  assert.deepEqual(browser.errors, []);
+});
+
+test('real mobile composer uses declared formats, role modes and unified optional additions with literal copy and fallback', { timeout: 180000 }, async t => {
+  const resources = browserTestResources(t), files = await resources.fixture();
+  await buildFixtureSite(files, compositionCatalog);
+  const server = await resources.serve(path.join(files.directory, 'dist'));
+  const browser = await resources.browser(path.join(files.directory, 'chrome'));
+  await browser.viewport(360, true);
+  await browser.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+  await browser.send('Browser.grantPermissions', { origin: server.origin, permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'] }, false);
+  await browser.navigate(server.origin, visibleIds + '.length === 3');
+  assert.equal(server.requests.filter(value => value.startsWith('/data/prompts/')).length, 0);
+  assert.equal(await browser.evaluate('document.querySelectorAll("[data-prompt-id=fixture-dual] [data-copy-format]").length'), 2);
+  assert.equal(await browser.evaluate('document.querySelectorAll("[data-prompt-id=fixture-tags] [data-copy-format]").length'), 1);
+  assert.equal(await browser.evaluate('document.querySelector("[data-prompt-id=fixture-tags] .card-copy").textContent'), '复制标签');
+  assert.equal(await browser.evaluate('document.querySelector("[data-prompt-id=fixture-text-only] .card-copy").textContent'), '复制完整提示词');
+  await browser.tabTo('[data-prompt-id=fixture-dual] [data-copy-format=tags]'); await browser.key('Enter');
+  await browser.wait('document.querySelector("[data-prompt-id=fixture-dual] .copy-status").textContent.includes("已复制")');
+  const dual = compositionCatalog.prompts.find(item => item.id === 'fixture-dual')!;
+  const rendered = (format: 'text' | 'tags', input_mode: 'reference-image' | 'text', additions = {}, variables = {}) => {
+    const result = renderPrompt(compositionCatalog, { id: dual.id, expected_revision: dual.prompt_revision, variables, format, input_mode, additions }); assert.ok(result.ok); return result.data;
+  };
+  assert.equal((await browser.evaluate<string>('navigator.clipboard.readText()')).replaceAll('\r\n', '\n'), rendered('tags', 'reference-image').prompt);
+  const tagExcerpt = await browser.evaluate<string>('document.querySelector("[data-prompt-id=fixture-dual] .card-excerpt").textContent');
+  assert.ok(dual.tag_template!.startsWith(tagExcerpt.slice(0, -1))); assert.ok(tagExcerpt.length < dual.tag_template!.length);
+  await browser.click('[data-prompt-id=fixture-dual] [data-copy-format=text]');
+  await browser.wait('document.querySelector("[data-prompt-id=fixture-dual] .copy-status").textContent.includes("已复制")');
+  assert.equal((await browser.evaluate<string>('navigator.clipboard.readText()')).replaceAll('\r\n', '\n'), rendered('text', 'reference-image').prompt);
+  assert.equal(server.requests.filter(value => value.startsWith('/data/prompts/')).length, 1);
+  await browser.navigate(server.origin + '/prompts/fixture-dual/', 'document.querySelector("#rendered-prompt")?.value.length > 0');
+  assert.equal(await browser.evaluate('document.querySelector("#usage-guide").textContent'), '在生图工具中添加你的角色图片，再粘贴下面的提示词。');
+  assert.equal(await browser.evaluate('document.querySelector("#variable-subject").closest(".variable-field").hidden'), true);
+  assert.equal(await browser.evaluate('document.querySelector("#additions-title").textContent'), '附加提示词（选填）');
+  assert.equal(await browser.evaluate('document.querySelectorAll("#additions-panel").length'), 1);
+  assert.equal(await browser.evaluate('document.querySelector("#custom-additions").closest("#additions-panel") === document.querySelector("[data-preset-id=happy]").closest("#additions-panel")'), true);
+  await browser.tabTo('[data-preset-id=happy]'); await browser.key('Enter');
+  await browser.wait('document.querySelector("[data-preset-id=happy]").getAttribute("aria-pressed") === "true"');
+  const custom = '(sparkling eyes:1.25), {subject}, $&\n中文 😀';
+  await browser.tabTo('#custom-additions'); await browser.replace(custom);
+  await browser.wait('document.querySelector("#rendered-prompt").value.includes(' + JSON.stringify(custom) + ')');
+  assert.equal(await browser.evaluate('document.querySelector("#rendered-prompt").value'), rendered('text', 'reference-image', { preset_ids: ['happy'], custom }).prompt);
+  await browser.tabTo('[data-preset-id=angry]'); await browser.key('Enter');
+  assert.equal(await browser.evaluate('document.querySelector("[data-preset-id=happy]").getAttribute("aria-pressed")'), 'false');
+  assert.equal(await browser.evaluate('document.querySelector("#rendered-prompt").value'), rendered('text', 'reference-image', { preset_ids: ['angry'], custom }).prompt);
+  await browser.key('Enter');
+  assert.equal(await browser.evaluate('document.querySelector("#rendered-prompt").value'), rendered('text', 'reference-image', { custom }).prompt);
+  await browser.tabTo('[name=input-mode][value=reference-image]'); await browser.key('ArrowDown');
+  await browser.wait('!document.querySelector("#variable-subject").closest(".variable-field").hidden');
+  assert.ok((await browser.evaluate<string>('document.querySelector("#usage-guide").textContent')).includes('填写角色描述'));
+  const subject = 'an adult traveler with blue hair {subject} $&';
+  await browser.tabTo('#variable-subject'); await browser.replace(subject);
+  await browser.tabTo('[data-preset-id=blush]'); await browser.key('Enter');
+  await browser.tabTo('#prompt-format');
+  // Select the native mobile picker option, then continue keyboard-only copy/removal actions.
+  await browser.evaluate('document.querySelector("#prompt-format").value = "tags"; document.querySelector("#prompt-format").dispatchEvent(new Event("change", { bubbles: true }))');
+  await browser.wait('document.querySelector("#prompt-format").value === "tags" && document.querySelector("#rendered-prompt").value.startsWith("test-only portrait,")');
+  const selected = { preset_ids: ['blush'], custom };
+  const expected = rendered('tags', 'text', selected, { subject });
+  assert.equal(await browser.evaluate('document.querySelector("#rendered-prompt").value'), expected.prompt);
+  assert.equal(await browser.evaluate('document.querySelector("#rendered-negative").value'), expected.negative_prompt);
+  if (process.env.UI_SCREENSHOT_DIR) {
+    const directory = path.resolve(process.env.UI_SCREENSHOT_DIR); await mkdir(directory, { recursive: true });
+    await browser.evaluate('scrollTo({ top: 0, behavior: "instant" })');
+    const { cssContentSize } = await browser.send('Page.getLayoutMetrics');
+    const { data } = await browser.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width: cssContentSize.width, height: cssContentSize.height, scale: 1 } });
+    await writeFile(path.join(directory, 'composer-360-tags.png'), Buffer.from(data, 'base64'));
+  }
+  await browser.tabTo('#copy-tags'); await browser.key('Enter');
+  await browser.wait('document.querySelector("#render-copy-status").textContent.includes("已复制")');
+  assert.equal((await browser.evaluate<string>('navigator.clipboard.readText()')).replaceAll('\r\n', '\n'), expected.prompt);
+  await browser.tabTo('#copy-rendered'); await browser.key('Enter');
+  await browser.wait('document.querySelector("#prompt-format").value === "text" && document.querySelector("#render-copy-status").textContent.includes("已复制")');
+  assert.equal((await browser.evaluate<string>('navigator.clipboard.readText()')).replaceAll('\r\n', '\n'), rendered('text', 'text', selected, { subject }).prompt);
+  await browser.tabTo('#clear-additions'); await browser.key('Enter');
+  assert.equal(await browser.evaluate('document.querySelector("#rendered-prompt").value'), rendered('text', 'text', {}, { subject }).prompt);
+  assert.equal(await browser.evaluate('document.querySelector("#custom-additions").value'), '');
+  await browser.tabTo('#custom-additions'); await browser.replace('😀'.repeat(2001));
+  await browser.wait('!document.querySelector("#render-error").hidden');
+  assert.equal(await browser.evaluate('[...document.querySelectorAll("[data-copy-format]")].every(button => button.disabled)'), true);
+  await browser.tabTo('#clear-additions'); await browser.key('Enter');
+  await browser.evaluate('Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async () => { throw new Error("denied"); } } })');
+  await browser.tabTo('#copy-tags'); await browser.key('Enter');
+  await browser.wait('document.activeElement.id === "rendered-prompt"');
+  assert.equal(await browser.evaluate('document.activeElement.value'), rendered('tags', 'text', {}, { subject }).prompt);
+  assert.equal(await browser.evaluate('document.activeElement.selectionEnd - document.activeElement.selectionStart'), await browser.evaluate('document.activeElement.value.length'));
+  assert.equal(await browser.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), true);
+  await browser.navigate(server.origin + '/prompts/fixture-tags/', 'document.querySelector("#rendered-prompt")?.value.startsWith("test-only,")');
+  assert.equal(await browser.evaluate('document.querySelector("#usage-guide").textContent'), '复制即可使用。');
+  assert.equal(await browser.evaluate('document.querySelectorAll("[data-copy-format]").length'), 1);
+  assert.equal(await browser.evaluate('document.querySelector("[data-copy-format]").dataset.copyFormat'), 'tags');
+  assert.equal(await browser.evaluate('document.querySelector("#input-mode-choice, #variables-form")'), null);
+  await browser.navigate(server.origin + '/prompts/fixture-text-only/', 'document.querySelector("#variable-subject") && document.querySelector("#rendered-prompt")?.value.length > 0');
+  assert.equal(await browser.evaluate('document.querySelector("#input-mode-choice, #additions-panel, [data-copy-format=tags]")'), null);
+  assert.equal(await browser.evaluate('document.querySelector("#variable-subject").closest(".variable-field").hidden'), false);
+  assert.equal(await browser.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), true);
   assert.deepEqual(browser.errors, []);
 });

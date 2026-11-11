@@ -189,6 +189,18 @@ nav { display: flex; align-items: center; gap: 12px; }
 .card-body { padding: 21px; display: flex; flex-direction: column; }
 .card-heading h3 { font-size: 18px; }
 .card-summary { flex: 1; font-size: 12px; margin: 10px 0 15px; }
+.card-excerpt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; white-space: normal; color: var(--muted); font-size: 12px; line-height: 1.8; margin: 13px 0 16px; }
+.input-mode-choice { border: 0; padding: 0; margin: 17px 0 12px; }
+.input-mode-choice legend { font-weight: 700; margin-bottom: 10px; }
+.mode-option { display: inline-flex; align-items: center; gap: 7px; margin: 0 15px 8px 0; cursor: pointer; }
+.additions-panel { border-top: 1px solid var(--line); padding-top: 19px; margin: 19px 0; }
+.additions-panel h3 { font-size: 15px; font-weight: 800; margin-bottom: 12px; }
+.preset-options { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.preset-option[aria-pressed="true"] { background: var(--color-primary); color: var(--color-primary-content); border-color: var(--color-primary); }
+.format-choice { display: flex; align-items: center; gap: 12px; margin: 18px 0 12px; font-size: 13px; }
+.format-choice select { width: auto; }
+.template-original { margin-top: 22px; }
+.template-original summary { margin-bottom: 12px; cursor: pointer; color: var(--muted); font-size: 12px; }
 .card-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 13px; }
 .card-actions .btn { min-height: 37px; height: 37px; font-size: 11px; padding-inline: 17px; }
 .card-text-link { font-size: 11px; }

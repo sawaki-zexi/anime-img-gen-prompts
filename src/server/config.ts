@@ -1,4 +1,4 @@
-export const serviceVersion = '0.1.0';
+export const serviceVersion = '0.2.0';
 
 export interface RuntimeConfig {
   mode: 'local' | 'production';
