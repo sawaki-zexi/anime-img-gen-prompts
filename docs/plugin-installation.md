@@ -1,14 +1,23 @@
 # 插件安装与验证
 
-当前插件 **0.1.0 为本地实验分发**。没有已开放的生产 MCP 地址、公开安装 ZIP、Git marketplace 发行或官方目录上架记录。普通用户先从画廊复制提示词；公开托管和正式发布属于 [Issue #5](https://github.com/sawaki-zexi/anime-img-gen-prompts/issues/5)。画廊的 `/install/` 页面始终展示真实接入状态，不提供无效的一键安装。
+已发布的 **0.2.0** 组合插件及旧 **0.1.2** 包、ZIP和历史证据保持不变。本次内容增加至四组用户原文与配图，三条全文、一条真实标签；全部配图由用户说明为 GPT 参考图生成，具体版本和日期不猜测。内容更新复用原 0.2.0 包，无需重装；旧包仍可按原三工具参数读取。仅在实际生图前按所选方式确认用户参考图；纯检索/复制可先交提示词，效果配图不替代用户角色。实际发布/下载以 [画廊接入页](https://anime-prompt-atelier.memorablestone1.chatgpt.site/install/) 为准，契约见 [用法与组合](prompt-composition.md)。尚未进入官方公共目录，历史安装证据不能代替客户端实测。
 
-正式普通用户流程是从届时公布且已验证的分发源安装一次，启用后开启新会话，在其他项目中直接描述头像、立绘、场景、壁纸、漫画、表情包或贴纸需求。远程托管服务不要求用户安装 Node.js、Python、克隆内容仓库或启动本地常驻进程，也不要求申请生图 API Key。插件本身不生图；有宿主图像工具时交接，无工具时交付完整提示词。
+在已安装 Codex CLI 的电脑中运行：
+
+```sh
+codex plugin marketplace add sawaki-zexi/anime-img-gen-prompts --ref plugin-release
+codex plugin add anime-prompt-atelier@anime-atelier-plugins
+```
+
+安装后开启新会话，在其他项目描述动漫创作目标即可。下载的 ZIP 是可移植插件产物，能否直接导入取决于客户端；CLI 使用以上经过验证的 marketplace 步骤。`plugin-release` 是长期分发分支，不随功能 PR 的分支清理而删除。
+
+普通用户从已验证分发源安装后开启新会话。库的用途可以扩展，当前四条都在实际生成前需要原角色参考图；仅查找或复制无需先交图，效果配图不自动充当角色参考。不要求Node.js、Python、本地服务、内容仓库副本或生图API Key。插件不生图；有宿主工具时逐字交接渲染结果，无工具时交付完整全文或标签。
 
 ## 当前客户端状态
 
 | 客户端 | 本插件实测状态 | 边界 |
 | --- | --- | --- |
-| Codex CLI 0.165.0 / Windows | 本地实验；隔离安装、两项目用户级发现、宿主读取 Skill 与 MCP 三工具连接通过 | 真实行为评测与宿主限制见 [验证记录](validation/issue-4-plugin.md)；命令读取 Skill 被宿主策略拒绝，不能标记完整支持 |
+| Codex CLI 0.165.0 / Windows | 公开服务实验；0.1.1 远程 Git 安装、两项目发现和三工具连接通过；旧 0.1.0 安装无需重装即可查新增内容 | 生产两场景烟测通过；完整受控评测见 [Issue #4](validation/issue-4-plugin.md)。宿主仍拒绝命令读取 Skill，不能标记完整支持 |
 | Codex 桌面端 | 尚未验证 | 不能用 CLI 结果替代桌面端干净安装与跨项目测试 |
 | ChatGPT 网页、桌面、移动端 | 尚未验证，本插件未进入公共目录 | 不承诺本地 marketplace 在所有界面都能安装 |
 | Codex IDE 扩展 | 官方当前不支持插件 | 如单独配置 MCP，仍不等于本插件 Skill 发现 |
@@ -24,9 +33,10 @@
 
 ```text
 <out>/
-  anime-prompt-atelier-0.1.0[-evaluation].zip
+  anime-prompt-atelier-<version>[-evaluation].zip
   build-report.json
   marketplace/
+    .gitattributes
     .agents/plugins/marketplace.json
     plugins/anime-prompt-atelier/
       plugin.json
@@ -38,9 +48,9 @@
       build-info.json
 ```
 
-ZIP 以插件根目录打包；marketplace 路径相对 marketplace 根目录。文件排序、ZIP 时间戳与字节固定，Skill 与 SVG 输入显式规范化为 LF，同一配置得到同一 SHA-256；局部 Git 属性也仅把插件目录与图标设为 LF。包内不包含提示词库正文、示例图、运行时、hooks、后台进程或密钥；内容由远程服务按需返回。输出目录必须尚不存在，脚本不会覆盖已有文件。
+ZIP 以插件根目录打包；marketplace 路径相对 marketplace 根目录。文件排序、ZIP 时间戳与字节固定，Skill 与 SVG 输入显式规范化为 LF，同一配置得到同一 SHA-256。生成的 marketplace 根包含 `.gitattributes`（`* -text`），复制发布时必须保留隐藏文件；真实 `core.autocrlf=true` Git 克隆已核对全部插件字节一致，不靠放宽哈希校验兼容换行转换。此属性文件位于 marketplace 根，ZIP 仍只有原八个审核文件。包内不包含提示词库正文、示例图、运行时、hooks、后台进程或密钥；内容由远程服务按需返回。输出目录必须尚不存在，脚本不会覆盖已有文件。
 
-发布构建使用默认 release 模式：必须给出公开 HTTPS URL，拒绝回环、私网、保留示例域名、凭据、查询与片段；还会实际验证远程三工具与画廊的内容修订一致，失败则不生成发布包。当前没有可填入的生产地址，**不要把测试包改名后发布**。
+发布构建使用默认 release 模式：必须给出公开 HTTPS URL，拒绝回环、私网、保留示例域名、凭据、查询与片段；还会实际验证远程三工具、画廊及健康检查的内容修订一致，失败则不生成发布包。包的 `catalog_revision_at_build` 和 `release-preflight.json` 记录构建时的真实服务版本；后续查询仍使用远程当前内容。不要把测试包改名后发布。首次服务如何先上线、再生成 ZIP，以及同安装更新与回退步骤见 [发布说明](release.md)。
 
 ```powershell
 # 仅在真实托管服务与画廊已经存在时；这两项由发布任务提供。
@@ -59,7 +69,7 @@ npm run plugin:probe -- --package artifacts/plugin-evaluation --state artifacts/
 
 `plugin:probe` 使用现有 CLI，创建专用配置和两个项目，实际执行 `plugin marketplace add`、`plugin add`、`plugin list`，再由官方 app-server 的 `initialize`、`skills/list`、`fs/readFile` 核对用户级 Skill 的真实路径与正文哈希，并查询 `mcpServerStatus/list`。有可用服务时记录三个工具的真实发现；服务未运行时明确记录工具未连接。报告写入指定独立目录，不读取或复制用户认证，不改现有用户配置或插件缓存。子进程只使用专用 `CODEX_HOME`，移除父桌面聊天的工具路由和会话身份，保留权限限制。可用 `--codex <原生可执行文件或codex.js>` 指定已安装 CLI；不安装或升级 CLI。
 
-真实验证过的最短 CLI 安装动作是将**生成产物的 marketplace 根目录**传给 `codex plugin marketplace add`，再执行 `codex plugin add anime-prompt-atelier@anime-atelier-plugins`；安装探针已代为运行这两个动作。这仅是维护者测试路径。仓库根当前没有可供普通用户直接安装的生产 marketplace，不要把仓库 Git URL当作已发布安装源。
+真实验证过的本地 CLI 安装动作是将**生成产物的 marketplace 根目录**传给 `codex plugin marketplace add`，再执行 `codex plugin add anime-prompt-atelier@anime-atelier-plugins`；安装探针已代为运行这两个动作。这是维护者测试路径。公开 Git 分发计划使用 `plugin-release` 独立 ref；只有实际发布并验证后安装页才列出它，不要把内容仓库根目录当 marketplace。
 
 官方 Skill 校验也已执行；Windows 中文环境使用 `python -X utf8 <skill-creator目录>/scripts/quick_validate.py <Skill目录>`，不修改用户 Python 设置。该工具验证格式，不能代替实际行为评测。[Skill 编写说明](https://developers.openai.com/plugins/build/skills)
 

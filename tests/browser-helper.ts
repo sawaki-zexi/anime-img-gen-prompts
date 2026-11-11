@@ -9,7 +9,7 @@ import path from 'node:path';
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 type Pending = { resolve: (value: any) => void; reject: (reason: Error) => void; timer: ReturnType<typeof setTimeout> };
 
-export async function serve(directory: string) {
+export async function serve(directory: string, aliases = new Map<string, string>()) {
   const requests: string[] = [];
   const root = path.resolve(directory);
   const types: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.json': 'application/json', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
@@ -17,7 +17,7 @@ export async function serve(directory: string) {
     try {
       const pathname = decodeURIComponent(new URL(request.url!, 'http://127.0.0.1').pathname);
       requests.push(pathname);
-      const filename = path.resolve(root, `.${pathname.endsWith('/') ? `${pathname}index.html` : pathname}`);
+      const filename = path.resolve(root, aliases.get(pathname) ?? `.${pathname.endsWith('/') ? `${pathname}index.html` : pathname}`);
       if (path.relative(root, filename).startsWith('..') || path.isAbsolute(path.relative(root, filename))) throw new Error('Outside fixture');
       const bytes = await readFile(filename);
       response.writeHead(200, { 'Content-Type': types[path.extname(filename)] ?? 'application/octet-stream' });
@@ -41,6 +41,7 @@ export class Browser {
   private sequence = 0;
   private pending = new Map<number, Pending>();
   private session = '';
+  private loaderId = '';
   private socket!: WebSocket;
   private process!: ChildProcess;
   readonly errors: string[] = [];
@@ -49,14 +50,41 @@ export class Browser {
     const browser = new Browser();
     const executable = [process.env.CHROME_BIN, 'C:/Program Files/Google/Chrome/Application/chrome.exe', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find(value => value && existsSync(value));
     assert.ok(executable, 'Install Chrome/Chromium or set CHROME_BIN to run browser acceptance checks.');
-    browser.process = spawn(executable, ['--headless=new', '--disable-gpu', '--disable-dev-shm-usage', '--no-sandbox', '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { windowsHide: true, stdio: 'ignore' });
-    try {
+    const startupTimeoutMs = 30000;
+    const startupAbort = new AbortController();
+    let phase = 'DevToolsActivePort';
+    let stderrTail = '';
+    const diagnostic = (reason: string) => new Error(`${reason} while waiting for ${phase}. Chrome stderr (last 8192 characters):\n${stderrTail || '(empty)'}`);
+    browser.process = spawn(executable, ['--headless=new', '--disable-gpu', '--disable-dev-shm-usage', '--no-sandbox', '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
+    browser.process.stderr!.on('data', (chunk: Buffer) => { stderrTail = (stderrTail + chunk.toString()).slice(-8192); });
+    let rejectStartup!: (error: Error) => void;
+    const failedStartup = new Promise<never>((_resolve, reject) => { rejectStartup = reject; });
+    const failStartup = (error: Error) => { startupAbort.abort(error); rejectStartup(error); };
+    const processError = (error: Error) => failStartup(diagnostic(`Chrome failed to start: ${error.message}`));
+    const processExit = (code: number | null, signal: NodeJS.Signals | null) => failStartup(diagnostic(`Chrome exited before readiness (code=${code}, signal=${signal})`));
+    browser.process.once('error', processError); browser.process.once('exit', processExit);
+    const startupTimer = setTimeout(() => failStartup(diagnostic(`Chrome readiness timed out after ${startupTimeoutMs} ms`)), startupTimeoutMs);
+    const initialize = async () => {
       const portFile = path.join(profile, 'DevToolsActivePort');
-      for (let index = 0; index < 100 && !existsSync(portFile); index++) await pause(100);
-      const port = (await readFile(portFile, 'utf8')).split('\n')[0];
-      const info = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json() as { webSocketDebuggerUrl: string };
+      while (!existsSync(portFile)) { startupAbort.signal.throwIfAborted(); await pause(100); }
+      startupAbort.signal.throwIfAborted();
+      const port = (await readFile(portFile, { encoding: 'utf8', signal: startupAbort.signal })).split('\n')[0]!.trim();
+      if (!/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535) throw diagnostic('Chrome wrote an invalid DevTools port');
+      phase = 'DevTools HTTP readiness';
+      const response = await fetch(`http://127.0.0.1:${port}/json/version`, { signal: startupAbort.signal });
+      if (!response.ok) throw diagnostic(`Chrome DevTools returned HTTP ${response.status}`);
+      const info = await response.json() as { webSocketDebuggerUrl: string };
+      phase = 'DevTools WebSocket';
       browser.socket = new WebSocket(info.webSocketDebuggerUrl);
-      await new Promise<void>((resolve, reject) => { browser.socket.addEventListener('open', () => resolve(), { once: true }); browser.socket.addEventListener('error', reject, { once: true }); });
+      await new Promise<void>((resolve, reject) => {
+        const cleanup = () => { browser.socket.removeEventListener('open', opened); browser.socket.removeEventListener('error', failed); startupAbort.signal.removeEventListener('abort', aborted); };
+        const opened = () => { cleanup(); resolve(); };
+        const failed = () => { cleanup(); reject(diagnostic('Chrome DevTools WebSocket failed')); };
+        const aborted = () => { cleanup(); browser.socket.close(); reject(startupAbort.signal.reason); };
+        browser.socket.addEventListener('open', opened, { once: true }); browser.socket.addEventListener('error', failed, { once: true });
+        startupAbort.signal.addEventListener('abort', aborted, { once: true });
+        if (startupAbort.signal.aborted) aborted();
+      });
       browser.socket.addEventListener('message', event => {
         const message = JSON.parse(String(event.data));
         if (message.id) {
@@ -65,7 +93,9 @@ export class Browser {
           if (message.error) pending.reject(new Error(message.error.message)); else pending.resolve(message.result);
         }
         if (message.method === 'Runtime.exceptionThrown') browser.errors.push(message.params.exceptionDetails.exception?.description ?? message.params.exceptionDetails.text);
+        if (message.method === 'Page.frameNavigated' && !message.params.frame.parentId) browser.loaderId = message.params.frame.loaderId;
       });
+      phase = 'DevTools session initialization';
       const { targetId } = await browser.send('Target.createTarget', { url: 'about:blank' }, false);
       const { sessionId } = await browser.send('Target.attachToTarget', { targetId, flatten: true }, false);
       browser.session = sessionId;
@@ -73,8 +103,12 @@ export class Browser {
       await browser.send('Page.bringToFront');
       await browser.send('Emulation.setFocusEmulationEnabled', { enabled: true });
       await browser.send('Network.setBlockedURLs', { urls: ['*fonts.googleapis.com*', '*fonts.gstatic.com*'] });
+    };
+    try {
+      await Promise.race([initialize(), failedStartup]);
       return browser;
-    } catch (error) { await browser.close(); throw error; }
+    } catch (error) { startupAbort.abort(error); await browser.close(); throw error; }
+    finally { clearTimeout(startupTimer); browser.process.removeListener('error', processError); browser.process.removeListener('exit', processExit); }
   }
 
   send(method: string, params: Record<string, unknown> = {}, session = true): Promise<any> {
@@ -90,15 +124,21 @@ export class Browser {
     if (value.exceptionDetails) throw new Error(value.exceptionDetails.exception?.description ?? value.exceptionDetails.text);
     return value.result.value;
   }
-  async wait(expression: string) {
+  async wait(expression: string, expectedLoaderId?: string) {
     for (let index = 0; index < 120; index++) {
-      try { if (await this.evaluate(expression)) return; } catch { /* Navigation can replace the execution context. */ }
+      // SSR elements can exist before deferred modules bind their handlers. Never interact with that intermediate document.
+      try { if ((!expectedLoaderId || this.loaderId === expectedLoaderId) && await this.evaluate(`document.readyState === 'complete' && (${expression})`)) return; } catch { /* Navigation can replace the execution context. */ }
       await pause(50);
     }
-    const state = await this.evaluate(`({ url: location.href, focus: document.activeElement?.id, controls: [...document.querySelectorAll('#variables-form input, #variables-form textarea, #variables-form select')].map(item => [item.id, item.value]), error: document.querySelector('#render-error')?.textContent })`);
-    throw new Error(`Browser condition did not become true: ${expression}\n${JSON.stringify(state)}`);
+    const state = await this.evaluate(`({ url: location.href, ready_state: document.readyState, focus: document.activeElement?.id, controls: [...document.querySelectorAll('#variables-form input, #variables-form textarea, #variables-form select')].map(item => [item.id, item.value]), error: document.querySelector('#render-error')?.textContent })`);
+    throw new Error(`Browser condition did not become true: ${expression}\n${JSON.stringify({ ...state, expected_loader_id: expectedLoaderId ?? null, actual_loader_id: this.loaderId })}`);
   }
-  async navigate(url: string, ready: string) { await this.send('Page.navigate', { url }); await this.wait(`document.readyState !== 'loading' && (${ready})`); }
+  async navigate(url: string, ready: string) {
+    const result = await this.send('Page.navigate', { url });
+    if (result.errorText) throw new Error(`Browser navigation failed: ${result.errorText}`);
+    // The previous page can still be complete when Page.navigate returns. Confirm this navigation's loader and URL first.
+    await this.wait(`location.href === ${JSON.stringify(new URL(url).href)} && (${ready})`, result.loaderId);
+  }
   async viewport(width: number, mobile = false) { await this.send('Emulation.setDeviceMetricsOverride', { width, height: 950, deviceScaleFactor: 1, mobile }); }
   async click(selector: string) {
     const rect = await this.evaluate<{ x: number; y: number }>(`(() => { const element = document.querySelector(${JSON.stringify(selector)}); if (!element) throw new Error('Missing target'); element.scrollIntoView({ block: 'center', behavior: 'instant' }); const rect = element.getBoundingClientRect(); return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }; })()`);

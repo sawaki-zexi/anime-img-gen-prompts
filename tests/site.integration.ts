@@ -5,9 +5,9 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { createMcpHttpServer } from '../src/server/mcp.ts';
-import { createSearchCatalog, searchPrompts } from '../src/lib/catalog.ts';
+import { createSearchCatalog, promptCapabilities, searchPrompts } from '../src/lib/catalog.ts';
 import { catalogSchema, detailDocumentSchema, getResultSchema, renderResultSchema, searchCatalogSchema, searchResultSchema } from '../src/lib/schema.ts';
-import { catalog, projectRoot } from './helpers.ts';
+import { productionCatalog as catalog, projectRoot } from './helpers.ts';
 
 function embeddedJson(html: string, id: string): unknown {
   const match = html.match(new RegExp(`<script\\b[^>]*id="${id}"[^>]*>([\\s\\S]*?)<\\/script>`));
@@ -15,7 +15,7 @@ function embeddedJson(html: string, id: string): unknown {
   return JSON.parse(match[1]!);
 }
 
-test('all six built details, lazy-copy documents and HTTP MCP share exact templates, examples and revisions', async t => {
+test('all built details, lazy-copy documents and HTTP MCP share exact templates, examples and revisions', async t => {
   const publicIndex = searchCatalogSchema.parse(JSON.parse(await readFile(path.join(projectRoot, 'dist/catalog.json'), 'utf8')));
   const home = await readFile(path.join(projectRoot, 'dist/index.html'), 'utf8');
   const browserHome = searchCatalogSchema.parse(embeddedJson(home, 'catalog-data'));
@@ -41,11 +41,14 @@ test('all six built details, lazy-copy documents and HTTP MCP share exact templa
     const copy = detailDocumentSchema.parse(JSON.parse(await readFile(path.join(projectRoot, 'dist/data/prompts', `${prompt.id}.json`), 'utf8')));
     assert.deepEqual(copy.prompt, prompt); assert.equal(copy.catalog_revision, catalog.catalog_revision);
     const fetched = getResultSchema.parse((await client.callTool({ name: 'get_prompt', arguments: { id: prompt.id, include_examples: true } })).structuredContent);
-    assert.ok(fetched.ok); assert.deepEqual(fetched.data, prompt);
+    assert.ok(fetched.ok); assert.deepEqual(fetched.data, { ...prompt, capabilities: promptCapabilities(prompt) });
+    assert.deepEqual(fetched.data.capabilities.formats, [prompt.id === 'chibi-catgirl-sticker' ? 'tags' : 'text']);
+    assert.equal(fetched.data.examples[0]!.generator, 'GPT'); assert.equal(fetched.data.examples[0]!.model, null); assert.equal(fetched.data.examples[0]!.created_at, null);
+    assert.ok(fetched.data.source.text_license); assert.ok(fetched.data.source.image_license); assert.ok(fetched.data.conditions.length > 0); assert.ok(fetched.data.examples[0]!.provenance);
     const rendered = renderResultSchema.parse((await client.callTool({ name: 'render_prompt', arguments: { id: prompt.id, expected_revision: prompt.prompt_revision, variables: {} } })).structuredContent);
     assert.ok(rendered.ok); assert.equal(rendered.data.prompt, prompt.examples[0]!.effective_prompt);
   }
-  for (const input of [{}, { query: 'watercolor wallpaper' }, { query: '梗图' }, { use_cases: ['avatar', 'scenery'], styles: ['watercolor'] }, { model: 'unknown-model', verified_only: true }]) {
+  for (const input of [{}, { query: '重绘' }, { query: '蜡笔' }, { query: '猫娘', model: 'GPT' }, { query: 'GPT' }, { model: 'GPT', verified_only: true }, { use_cases: ['avatar', 'character'], styles: ['rough-crayon', 'chibi'] }, { model: 'unknown-model', verified_only: true }]) {
     const wire = searchResultSchema.parse((await client.callTool({ name: 'search_prompts', arguments: input })).structuredContent);
     const browser = searchPrompts(publicIndex, input);
     assert.deepEqual(wire, browser);

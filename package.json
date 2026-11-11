@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24.15.0 <25" },
+  "engines": {
+    "node": ">=24.15.0 <25"
+  },
   "scripts": {
     "lockfile:check": "node scripts/check-lockfile.ts",
     "content:build": "tsx scripts/build-catalog.ts",
@@ -20,9 +22,13 @@
     "test": "npm run content:build && tsx --test tests/*.test.ts",
     "test:site": "npm run build && tsx --test tests/site.integration.ts",
     "test:browser": "npm run build && tsx --test tests/browser.integration.ts",
-    "check": "npm run lockfile:check && npm run typecheck && npm test && npm run test:site && tsx --test tests/browser.integration.ts"
+    "check": "npm run lockfile:check && npm run typecheck && npm test && npm run test:site && tsx --test tests/browser.integration.ts",
+    "release:build": "tsx scripts/build-release.ts",
+    "benchmark": "npm run content:build && tsx benchmarks/run.ts",
+    "release:verify": "tsx scripts/release/verify.ts"
   },
   "dependencies": {
+    "@cfworker/json-schema": "4.1.1",
     "@modelcontextprotocol/node": "2.1.2",
     "@modelcontextprotocol/server": "2.4.0",
     "gray-matter": "4.0.3",
@@ -37,6 +43,7 @@
     "@types/node": "24.19.2",
     "astro": "7.4.7",
     "daisyui": "5.7.50",
+    "esbuild": "0.28.2",
     "tailwindcss": "4.3.5",
     "tsx": "4.23.15",
     "typescript": "6.0.3"

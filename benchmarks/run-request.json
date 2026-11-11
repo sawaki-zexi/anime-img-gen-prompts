@@ -1,0 +1,11 @@
+{
+  "request": "prompt-composer-contract-release-acceptance",
+  "source_content_count": 3,
+  "fixture_count": 1000,
+  "concurrency": 20,
+  "warmup_seconds": 15,
+  "measure_seconds": 300,
+  "cpu_limit": 2,
+  "memory_bytes": 2147483648,
+  "requested_on": "2026-11-11"
+}

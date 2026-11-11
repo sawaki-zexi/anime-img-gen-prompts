@@ -1,0 +1,57 @@
+{
+  "checked_at": "2026-11-10T04:24:16Z",
+  "project_id": "appgprj_6af28af93d9081918cccb09ace648204",
+  "origin": "https://anime-prompt-atelier.memorablestone1.chatgpt.site",
+  "access_mode": "public",
+  "site_version_number": 4,
+  "site_version_id": "appgprj_6af28af93d9081918cccb09ace648204~appgver_3a53d9ce1b448191bc6bbfd6ce7d07c7",
+  "source_repository_commit": "137e9f539a778ccb935036966a557354c3128a53",
+  "github_implementation_commit": "a16cccb9e9b56276acf2a50fa6ea25068f695363",
+  "worker_sha256": "1d856c5b1ffface89f6dbef3643d439c441b6a0664f96be91b7a1fb1c099aea9",
+  "archive_content_hash": "sha256:e95a10c1d158c4056c5640597c03174ebe3dc09b9582e57e2f0909395038a077",
+  "catalog_revision": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c",
+  "prompt_count": 7,
+  "plugin_version": "0.1.1",
+  "marketplace_ref": "plugin-release",
+  "marketplace_commit": "684871bf66025ab411142d9aafbeca8de33ba768",
+  "plugin_archive_sha256": "2ad6726d589a6a85a39fece7f7598a40bb82e7831daed7fb3c465a5b0e1cdb32",
+  "deployments": {
+    "six_record_distribution": {
+      "deployment_id": "appgdep_6af2965bcb408191b3a33fdd8c526596",
+      "version_id": "appgprj_6af28af93d9081918cccb09ace648204~appgver_ff12faf856788191a33b898a24ac8002",
+      "status": "succeeded",
+      "updated_at": "2026-11-10T03:58:25.250845+00:00"
+    },
+    "seven_record_update": {
+      "deployment_id": "appgdep_6af2992d87448191be2d7b791203dc7f",
+      "version_id": "appgprj_6af28af93d9081918cccb09ace648204~appgver_d8c54f4a49408191a81c26479a93a4d6",
+      "status": "succeeded",
+      "updated_at": "2026-11-10T04:10:26.980404+00:00"
+    },
+    "rollback_to_six": {
+      "deployment_id": "appgdep_6af299f6ce308191970c6e83b1d95133",
+      "version_id": "appgprj_6af28af93d9081918cccb09ace648204~appgver_ff12faf856788191a33b898a24ac8002",
+      "status": "succeeded",
+      "updated_at": "2026-11-10T04:13:47.815823+00:00"
+    },
+    "restore_seven": {
+      "deployment_id": "appgdep_6af29a2943708191bf8382807047ee2e",
+      "version_id": "appgprj_6af28af93d9081918cccb09ace648204~appgver_d8c54f4a49408191a81c26479a93a4d6",
+      "status": "succeeded",
+      "updated_at": "2026-11-10T04:14:38.621521+00:00"
+    },
+    "final_distribution": {
+      "deployment_id": "appgdep_6af29c424e9c8191986a7207b81c5a6a",
+      "version_id": "appgprj_6af28af93d9081918cccb09ace648204~appgver_3a53d9ce1b448191bc6bbfd6ce7d07c7",
+      "status": "succeeded",
+      "updated_at": "2026-11-10T04:23:35.826523+00:00"
+    }
+  },
+  "native_site_mcp_capability": false,
+  "anonymous_mcp_path": "/api/mcp",
+  "hosting_account": "existing connected Sites account; no new paid account or upgrade created",
+  "hosting_resource_quota": "not exposed by this connection; benchmark cgroups do not describe production isolate resources",
+  "provider_log_retention": "not exposed by this connection; application logs are explicitly field-limited",
+  "desktop_status": "not verified",
+  "directory_status": "not submitted or listed"
+}

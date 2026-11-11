@@ -1,11 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import PromptCard from '../components/PromptCard.astro';
-import { catalog, searchCatalog, localPath, jsonForScript, sitePath } from '../lib/site.ts';
+import { catalog, searchCatalog, localPath, jsonForScript } from '../lib/site.ts';
 import { searchPrompts } from '../lib/catalog.ts';
 const result = searchPrompts(searchCatalog, {});
 if (!result.ok) throw new Error(result.error.message);
-const featured = catalog.prompts.find(prompt => prompt.id === 'summer-anime-illustrator') ?? catalog.prompts[0];
+const featured = catalog.prompts[0];
 const hero = featured?.examples[0];
 const templateItem = result.data.items[0];
 const hasPublished = catalog.prompts.length > 0;
@@ -14,30 +14,26 @@ const hasPublished = catalog.prompts.length > 0;
   <section class:list={['gallery-hero', { 'gallery-hero-empty': !hero }]} aria-labelledby="hero-title">
     {hero && <img class="hero-art" src={localPath(hero.image)} width={hero.width} height={hero.height} alt="" fetchpriority="high" />}
     <div class="hero-shade"></div>
-    <div class="hero-inner"><span class="hero-kicker">✧ A LITTLE PROMPT, A NEW WORLD</span><h1 id="hero-title">把脑海里的画面，<br />变成下一张心动。</h1><p>寻找喜欢的动漫画风，<br class="mobile-break" />带走可以继续创作的提示词。</p><a class="btn hero-button" href="#gallery">探索这本灵感集 <span aria-hidden="true">↘</span></a></div>
-    <span class="hero-credit">{hero ? `本库真实生成示例 · ${featured?.title}` : '新的灵感正在准备中'}</span>
+    <div class="hero-inner"><h1 id="hero-title">动漫提示词</h1></div>
   </section>
   <div class="page-shell gallery-shell">
     <form id="search-form" role="search" novalidate>
-      <div class="search-surface"><span class="search-icon" aria-hidden="true">⌕</span><label class="sr-only" for="prompt-query">搜索提示词</label><input class="input search-input" id="prompt-query" name="q" type="search" placeholder="搜索头像、海边、watercolor…" maxlength="512" autocomplete="off" /><button class="btn btn-primary" type="submit">寻找灵感 <span aria-hidden="true">↗</span></button></div>
+      <div class="search-surface"><span class="search-icon" aria-hidden="true">⌕</span><label class="sr-only" for="prompt-query">搜索提示词</label><input class="input search-input" id="prompt-query" name="q" type="search" placeholder="搜索提示词…" maxlength="512" autocomplete="off" /><button class="btn btn-primary" type="submit">搜索</button></div>
       <div class="filter-surface">
-        <fieldset class="filter-group"><legend>想创作什么</legend><div class="filter-chips">{catalog.taxonomy.use_cases.map(term => <label class="filter-chip"><input class="checkbox checkbox-xs" type="checkbox" name="use_case" value={term.id} /><span>{term.label}</span></label>)}</div></fieldset>
-        <fieldset class="filter-group"><legend>喜欢的画风</legend><div class="filter-chips">{catalog.taxonomy.styles.map(term => <label class="filter-chip"><input class="checkbox checkbox-xs" type="checkbox" name="style" value={term.id} /><span>{term.label}</span></label>)}</div></fieldset>
-        <div class="filter-tools"><label class="model-filter" for="model-filter">适用模型<input class="input input-sm" id="model-filter" name="model" type="text" list="model-options" placeholder="全部模型 · 可输入模型名称" maxlength="200" /><datalist id="model-options">{catalog.taxonomy.models.map(term => <option value={term.id}>{term.label}</option>)}</datalist></label><label class="verified-filter"><input class="checkbox checkbox-sm" type="checkbox" name="verified" value="1" />仅此模型已验证</label><label class="page-size" for="page-size">每页<select class="select select-sm" id="page-size" name="limit"><option value="5">5 条</option><option value="10">10 条</option><option value="20">20 条</option></select></label><button class="btn btn-ghost btn-sm" id="clear-search" type="button">清除条件 ↺</button></div>
-        <p class="filter-help">同组选择任意一项，跨组同时满足。未知兼容性会明确标记；“仅已验证”需要填写模型。</p>
+        <fieldset class="filter-group"><legend>用途</legend><div class="filter-chips">{catalog.taxonomy.use_cases.map(term => <label class="filter-chip"><input class="checkbox checkbox-xs" type="checkbox" name="use_case" value={term.id} /><span>{term.label}</span></label>)}</div></fieldset>
+        <fieldset class="filter-group"><legend>画风</legend><div class="filter-chips">{catalog.taxonomy.styles.map(term => <label class="filter-chip"><input class="checkbox checkbox-xs" type="checkbox" name="style" value={term.id} /><span>{term.label}</span></label>)}</div></fieldset>
+        <div class="filter-options"><details class="advanced-filters" id="advanced-filters"><summary>更多筛选</summary><div class="filter-tools"><label class="model-filter" for="model-filter">适用模型<input class="input input-sm" id="model-filter" name="model" type="text" list="model-options" placeholder="全部模型" maxlength="200" /><datalist id="model-options">{catalog.taxonomy.models.map(term => <option value={term.id}>{term.label}</option>)}</datalist></label><label class="verified-filter"><input class="checkbox checkbox-sm" type="checkbox" name="verified" value="1" />仅此模型已验证</label><label class="page-size" for="page-size">每页<select class="select select-sm" id="page-size" name="limit"><option value="5">5 条</option><option value="10">10 条</option><option value="20">20 条</option></select></label></div></details><button class="btn btn-ghost btn-sm" id="clear-search" type="button" hidden>清除筛选</button></div>
       </div>
     </form>
     <section id="gallery" class="gallery-section" aria-labelledby="gallery-title">
-      <div class="section-heading"><div><span class="eyebrow">YOUR NEXT LITTLE WORLD</span><h2 id="gallery-title" tabindex="-1">灵感，从这里展开<span aria-hidden="true"> ✦</span></h2><p>从人物到风景，每张图都有可以继续创作的提示词。</p></div><span class="badge count-badge" id="result-count" aria-live="polite">本页 {result.data.items.length} 条模板</span></div>
-      <p class="applied-filters" id="applied-filters" aria-live="polite">全部用途与画风 · 按相关性、稳定 ID 排序</p>
+      <div class="section-heading"><h2 class="sr-only" id="gallery-title" tabindex="-1">画廊</h2><span class="badge count-badge" id="result-count" aria-live="polite">{result.data.items.length} 条</span></div>
+      <p class="applied-filters" id="applied-filters" aria-live="polite" hidden></p>
       <p class="search-error" id="search-error" role="alert" hidden></p>
       <div id="prompt-grid" class="prompt-grid">{result.data.items.map(item => <PromptCard item={item} />)}</div>
-      <div class="card empty-state" id="empty-state" hidden={result.data.items.length > 0}><span class="empty-star" aria-hidden="true">✧</span><h3>{hasPublished ? '这页灵感还没写到这里' : '新的灵感正在准备中'}</h3><p>{hasPublished ? '试试减少用途或画风条件，或换一个关键词。' : '目前没有已发布的模板，请稍后再来看看。'}</p><button class="btn btn-primary btn-sm" id="empty-reset" type="button" hidden={!hasPublished}>查看全部模板</button></div>
-      <div class="pagination" aria-label="画廊分页"><button class="btn btn-outline btn-sm" id="first-page" type="button" hidden>回到第一页</button><button class="btn btn-primary" id="next-page" type="button" disabled={!result.data.next_cursor}>下一页 <span aria-hidden="true">→</span></button><span class="page-status" id="page-status">{result.data.next_cursor ? '还有更多灵感' : '已看到本次检索的最后一页'}</span></div>
+      <div class="card empty-state" id="empty-state" hidden={result.data.items.length > 0}><h3>{hasPublished ? '没有匹配的提示词' : '暂无提示词'}</h3><p>{hasPublished ? '换个关键词或减少筛选。' : '目前没有已发布的模板。'}</p><button class="btn btn-primary btn-sm" id="empty-reset" type="button" hidden>清除筛选</button></div>
+      <div class="pagination" aria-label="画廊分页" hidden={!result.data.next_cursor}><button class="btn btn-outline btn-sm" id="first-page" type="button" hidden>回到第一页</button><button class="btn btn-primary" id="next-page" type="button" hidden={!result.data.next_cursor}>下一页</button></div>
       <noscript><p class="alert">启用 JavaScript 后可筛选、翻页与直接复制。你也可以打开上方任一详情，选择模板文本复制。</p></noscript>
     </section>
-    <aside class="card gallery-plugin-note"><span aria-hidden="true">✦</span><div><strong>想把灵感带到其他项目？</strong><p>查看插件的接入方式、测试状态与支持范围。</p></div><a class="btn btn-ghost btn-sm" href={sitePath('install/')}>查看插件接入 ↗</a></aside>
-    <div class="gallery-caption">从人物到远方的风景，让灵感有迹可循。<br />每条都有独立示例、生成记录与来源。</div>
   </div>
   <template id="prompt-card-template">{templateItem && <PromptCard item={templateItem} />}</template>
   <script id="catalog-data" type="application/json" is:inline set:html={jsonForScript(searchCatalog)} />

@@ -6,7 +6,7 @@ export async function verifyRemoteContract(mcpUrl: string, galleryUrl: string) {
   const client = new Client({ name: 'anime-plugin-release-check', version: '0.1.0' }, { versionNegotiation: { mode: 'auto' } });
   const resources = new AsyncDisposableStack(); resources.defer(() => client.close());
   const signal = AbortSignal.timeout(15_000);
-  const transport = new StreamableHTTPClientTransport(new URL(mcpUrl), { requestInit: { signal }, reconnectionOptions: { maxRetries: 0, initialReconnectionDelay: 100, maxReconnectionDelay: 100, reconnectionDelayGrowFactor: 1 } });
+  const transport = new StreamableHTTPClientTransport(new URL(mcpUrl), { requestInit: { signal, credentials: 'omit' }, reconnectionOptions: { maxRetries: 0, initialReconnectionDelay: 100, maxReconnectionDelay: 100, reconnectionDelayGrowFactor: 1 } });
   try {
     await client.connect(transport);
     const listing = await client.listTools();
@@ -35,6 +35,10 @@ export async function verifyRemoteContract(mcpUrl: string, galleryUrl: string) {
     const html = await gallery.text();
     const galleryRevision = html.match(/<meta\b[^>]*name=["']catalog-revision["'][^>]*content=["']([^"']+)["']/i)?.[1];
     if (galleryRevision !== search.catalog_revision) throw new Error('画廊与 MCP 内容版本不同或缺少可验证版本');
-    return { catalog_revision: search.catalog_revision, real_id: candidate.id, prompt_revision: detail.data.prompt_revision, tools: listing.tools.map(tool => tool.name).sort(), gallery_status: gallery.status };
+    const healthResponse = await fetch(new URL('/health', mcpUrl), { signal, credentials: 'omit', redirect: 'error' });
+    if (!healthResponse.ok) throw new Error(`健康检查不可用: HTTP ${healthResponse.status}`);
+    const health = await healthResponse.json() as { catalog_revision?: string; status?: string };
+    if (health.status !== 'ok' || health.catalog_revision !== search.catalog_revision) throw new Error('健康检查与 MCP 内容版本不同');
+    return { catalog_revision: search.catalog_revision, real_id: candidate.id, prompt_revision: detail.data.prompt_revision, tools: listing.tools.map(tool => tool.name).sort(), gallery_status: gallery.status, health_status: healthResponse.status, authentication: 'anonymous; no cookies or credentials sent' };
   } finally { await resources.disposeAsync(); }
 }

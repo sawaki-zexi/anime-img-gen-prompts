@@ -1,0 +1,39 @@
+{
+  "checked_at": "2026-11-10T09:16:23.136Z",
+  "installed_version": "0.1.2",
+  "original_distribution_commit": "44dead5160451786fecbf612c9a622c95185cd4a",
+  "endpoint": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp",
+  "catalog_revision": "sha256:9f3651c5d185e417a07cd0ff13b3c7151474ce0e6f25d948ad3f891e81db3530",
+  "items": [
+    {
+      "id": "cotton-doll-20cm-character-redraw",
+      "prompt_sha256": "296b291410828a16903d6a366d044c00561dfb659407ed47fb48c1718a7f059c",
+      "generation_date": null
+    },
+    {
+      "id": "rough-crayon-character-redraw",
+      "prompt_sha256": "4c598d1565c7f25ecee154546af76d07501b9eadfedc1f6faad5dc82f89c3820",
+      "generation_date": null
+    },
+    {
+      "id": "vacant-chibi-avatar-redraw",
+      "prompt_sha256": "3073a2f51b981ce5140338475f468cbfaa153099e2bc09eb8dc08928fdfab109",
+      "generation_date": null
+    }
+  ],
+  "reinstallation": false,
+  "configuration_changes": false,
+  "all_eight_installed_files_unchanged": true,
+  "files": {
+    "plugin.json": "3de6f55c82dd104c42bcf7d81d71af7db66dba57c8ee98045a9dd3db73670643",
+    "mcp.json": "6d0e0d2a6f06f70ff42ad996f4836b3e0e76b46a63ce436fc0d7e9b2c69cf9d7",
+    ".codex-plugin/plugin.json": "b3c86fdc864f704e8dfa3102cbb2ef37bf140af3792b5a16cd5e968272e2c412",
+    ".mcp.json": "f1a2b9ce307b7d411191ffcac89cdb00198d203fa0222cb09fd7baa0d66c7e1c",
+    "assets/icon.svg": "aeb81193fdf6e3f7b5a3a09b3b3f95642c69b33e754630487e04432eddf40bc6",
+    "skills/anime-prompt-atelier/SKILL.md": "a098060b0bf2ed9015e5fb0b20f862b3c581c138b3e6e8e9019227c464448186",
+    "skills/anime-prompt-atelier/agents/openai.yaml": "d80653fdff94977fd23e6827caaea17d50910d4ab0f7bd04cb341dd478dbc0fe",
+    "build-info.json": "e856d07ca607895ad63d257a01f50f20a32f823653b1ed59778ff1102c724af3"
+  },
+  "proof_type": "standard MCP calls using the existing installation connection; not a new host model evaluation",
+  "result": "pass"
+}

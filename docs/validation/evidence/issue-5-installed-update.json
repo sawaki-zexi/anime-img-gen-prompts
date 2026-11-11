@@ -1,0 +1,77 @@
+{
+  "plugin_version": "0.1.0",
+  "installation_source_commit": "a8e4abd4349646f1813df0c93fb01a582d57254a",
+  "new_entry": "windchime-librarian-avatar",
+  "identity": {
+    "plugin_files": {
+      ".codex-plugin/plugin.json": "5dc2d9efebf4ea323b8a8792c7ac5102aa19885101d2c86f76caebff1259cd41",
+      ".mcp.json": "f1a2b9ce307b7d411191ffcac89cdb00198d203fa0222cb09fd7baa0d66c7e1c",
+      "assets/icon.svg": "aeb81193fdf6e3f7b5a3a09b3b3f95642c69b33e754630487e04432eddf40bc6",
+      "build-info.json": "6914a47ec59d09664232e7a142b36e81213d20013e93b589161fd23792ebbba1",
+      "mcp.json": "6d0e0d2a6f06f70ff42ad996f4836b3e0e76b46a63ce436fc0d7e9b2c69cf9d7",
+      "plugin.json": "ee0b5ddd845d4e1f6697353932e068f0d98a566482ace35944782f7aaf0d8aed",
+      "skills/anime-prompt-atelier/agents/openai.yaml": "02311eca2bf499f6da43669e3403e7129b46cb0296979c94389897dcfd402417",
+      "skills/anime-prompt-atelier/SKILL.md": "22267a5a9851390696446c5a34c1acdc8cd905dec8f643067686b0daf9fcc1fe"
+    },
+    "config_sha256": "b58de5afff173ae4e6506b6af3cdc1f6c6237227aba0b6e2efe42990ef9713d4"
+  },
+  "phases": [
+    {
+      "checked_at": "2026-11-10T03:54:40.000Z",
+      "phase": "before",
+      "endpoint": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp",
+      "used_connection_from": "the unchanged previously installed plugin .mcp.json",
+      "search_ids": [],
+      "catalog_revision": "sha256:d419ce74d5f54b2e1d893cc02f31b42ecaff5daa9dda1b6151eec68169397831",
+      "new_entry_present": false,
+      "prompt_sha256": null,
+      "reinstallation": false,
+      "configuration_changes": false,
+      "result": "pass"
+    },
+    {
+      "checked_at": "2026-11-10T04:10:44.912Z",
+      "phase": "after",
+      "endpoint": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp",
+      "used_connection_from": "the unchanged previously installed plugin .mcp.json",
+      "search_ids": [
+        "windchime-librarian-avatar"
+      ],
+      "catalog_revision": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c",
+      "new_entry_present": true,
+      "prompt_sha256": "0f8d9e9554aaa1b9c0e50ec7e019cbf5afb9aa1cf760e85b9b3a634834e59a8c",
+      "reinstallation": false,
+      "configuration_changes": false,
+      "result": "pass"
+    },
+    {
+      "checked_at": "2026-11-10T04:13:52.121Z",
+      "phase": "rollback",
+      "endpoint": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp",
+      "used_connection_from": "the unchanged previously installed plugin .mcp.json",
+      "search_ids": [],
+      "catalog_revision": "sha256:d419ce74d5f54b2e1d893cc02f31b42ecaff5daa9dda1b6151eec68169397831",
+      "new_entry_present": false,
+      "prompt_sha256": null,
+      "reinstallation": false,
+      "configuration_changes": false,
+      "result": "pass"
+    },
+    {
+      "checked_at": "2026-11-10T04:14:42.212Z",
+      "phase": "restore",
+      "endpoint": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp",
+      "used_connection_from": "the unchanged previously installed plugin .mcp.json",
+      "search_ids": [
+        "windchime-librarian-avatar"
+      ],
+      "catalog_revision": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c",
+      "new_entry_present": true,
+      "prompt_sha256": "0f8d9e9554aaa1b9c0e50ec7e019cbf5afb9aa1cf760e85b9b3a634834e59a8c",
+      "reinstallation": false,
+      "configuration_changes": false,
+      "result": "pass"
+    }
+  ],
+  "all_installed_files_and_configuration_unchanged": true
+}

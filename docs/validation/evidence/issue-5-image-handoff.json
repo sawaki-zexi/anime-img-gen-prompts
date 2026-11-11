@@ -1,0 +1,25 @@
+{
+  "checked_at": "2026-11-10T03:52:12.167Z",
+  "mcp_url": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp",
+  "catalog_revision": "sha256:d419ce74d5f54b2e1d893cc02f31b42ecaff5daa9dda1b6151eec68169397831",
+  "source_id": "mint-watercolor-avatar",
+  "prompt_revision": "sha256:368aa838aeaac1fdc95e3713be5073d6ae5070a65ac287b39a3e55492e976d31",
+  "variables": {
+    "subject": "an adult anime librarian with a short chestnut bob, round gold-rimmed glasses and warm hazel eyes"
+  },
+  "prompt": "Use case: stylized-concept. Asset type: a square anime avatar illustration. Create a hand-painted watercolor anime portrait of an adult anime librarian with a short chestnut bob, round gold-rimmed glasses and warm hazel eyes, wearing a loose mint-colored summer shirt. Frame the head and shoulders with the face clearly readable at small size. A few soft leaves and a hanging glass wind chime blur into a light paper background. Use delicate pencil linework, translucent watercolor washes, subtle paper grain, fresh pale aqua and warm sunlight. The expression is relaxed and curious. Keep a clean silhouette and gentle breathing room around the hair. One original character, 1:1 composition, no lettering, no logo, no watermark, no UI.",
+  "prompt_sha256": "0f8d9e9554aaa1b9c0e50ec7e019cbf5afb9aa1cf760e85b9b3a634834e59a8c",
+  "imagegen_arguments": {
+    "prompt": "Use case: stylized-concept. Asset type: a square anime avatar illustration. Create a hand-painted watercolor anime portrait of an adult anime librarian with a short chestnut bob, round gold-rimmed glasses and warm hazel eyes, wearing a loose mint-colored summer shirt. Frame the head and shoulders with the face clearly readable at small size. A few soft leaves and a hanging glass wind chime blur into a light paper background. Use delicate pencil linework, translucent watercolor washes, subtle paper grain, fresh pale aqua and warm sunlight. The expression is relaxed and curious. Keep a clean silhouette and gentle breathing room around the hair. One original character, 1:1 composition, no lettering, no logo, no watermark, no UI.",
+    "transparent_background": false
+  },
+  "generation": "succeeded; native image_gen call received the exact rendered prompt",
+  "original_png_sha256": "f0fe1e886cec673db75b2ee61fc8e27db752b421c19158ff6c5327588a85aaa1",
+  "width": 1254,
+  "height": 1254,
+  "new_entry": "windchime-librarian-avatar",
+  "model": null,
+  "seed": null,
+  "paid_api": "not used",
+  "batch_generation": false
+}

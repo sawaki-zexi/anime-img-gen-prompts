@@ -4,7 +4,9 @@ import path from 'node:path';
 import matter from 'gray-matter';
 import sharp from 'sharp';
 import { authoredPromptSchema, catalogSchema, taxonomySchema, type Catalog, type Prompt } from '../lib/schema.ts';
-import { createSearchCatalog, normalize, placeholderPattern, renderPrompt } from '../lib/catalog.ts';
+import { createSearchCatalog, normalize, placeholderPattern, promptCapabilities, renderPrompt } from '../lib/catalog.ts';
+import { canonicalJson } from '../lib/revision.ts';
+export { canonicalJson } from '../lib/revision.ts';
 
 export interface BuildOptions {
   contentDir: string;
@@ -13,13 +15,6 @@ export interface BuildOptions {
   basePath?: string;
 }
 
-export function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
-  if (value !== null && typeof value === 'object') {
-    return `{${Object.entries(value).sort(([a], [b]) => a.localeCompare(b, 'en')).map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`).join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
 const hash = (value: string | Buffer) => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 
 async function markdownFiles(dir: string): Promise<string[]> {
@@ -62,11 +57,23 @@ export async function buildCatalog(options: BuildOptions): Promise<Catalog> {
       allIds.add(authored.id);
       const template = document.content.trim();
       if (!template) throw new Error('提示词正文不能为空');
-      const placeholders = new Set([...`${template}\n${authored.negative_template ?? ''}`.matchAll(placeholderPattern)].map(match => match[1]!));
+      const placeholders = new Set([...`${template}\n${authored.negative_template ?? ''}\n${authored.tag_template ?? ''}\n${authored.tag_negative_template ?? ''}`.matchAll(placeholderPattern)].map(match => match[1]!));
       const declared = Object.keys(authored.variables);
       const undeclared = [...placeholders].filter(name => !Object.hasOwn(authored.variables, name));
       const unused = declared.filter(name => !placeholders.has(name));
       if (undeclared.length || unused.length) throw new Error(`模板变量声明不一致: 未声明 ${undeclared.join(', ')}; 未使用 ${unused.join(', ')}`);
+      const capabilities = promptCapabilities(authored);
+      if (authored.body_format === 'tags' && (authored.tag_template || authored.tag_negative_template)) throw new Error('标签正文不能再声明标签变体');
+      if (authored.tag_negative_template && !authored.tag_template) throw new Error('标签负面文本需要标签变体');
+      if (authored.input_modes && new Set(authored.input_modes).size !== authored.input_modes.length) throw new Error('使用方式重复');
+      if (authored.input_modes?.includes('direct') && authored.input_modes.length > 1) throw new Error('直接使用不能混用角色输入方式');
+      if (authored.character_variable && (!authored.input_modes?.includes('text') || !Object.hasOwn(authored.variables, authored.character_variable))) throw new Error('角色描述必须引用已声明变量和文字输入方式');
+      if (authored.input_modes?.includes('text') && !authored.character_variable) throw new Error('文字输入方式需要声明角色描述变量');
+      const presets = authored.customization?.presets ?? [];
+      if (new Set(presets.map(preset => preset.id)).size !== presets.length) throw new Error('附加提示词 ID 重复');
+      for (const preset of presets) {
+        if (!Object.keys(preset.values).length || Object.keys(preset.values).some(format => !capabilities.formats.includes(format as 'text' | 'tags'))) throw new Error(`附加提示词 ${preset.id} 使用了未维护的格式`);
+      }
       for (const [name, variable] of Object.entries(authored.variables)) {
         if (variable.default !== undefined && ((variable.required && !variable.default.trim()) || [...variable.default].length > variable.max_length || (variable.options && !variable.options.includes(variable.default)))) {
           throw new Error(`变量 ${name} 的默认值不合法`);

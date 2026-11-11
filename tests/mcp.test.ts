@@ -5,20 +5,34 @@ import { get as httpGet } from 'node:http';
 import { Client, INVALID_PARAMS, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { AjvJsonSchemaValidator } from '@modelcontextprotocol/client/validators/ajv';
 import { createMcpHttpServer } from '../src/server/mcp.ts';
-import { createSearchCatalog, getPrompt, renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
+import { createSearchCatalog, getPrompt, promptCapabilities, renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
 import {
   failureSchema, getInputSchema, getResultSchema, renderInputSchema, renderResultSchema,
   searchInputSchema, searchResultSchema,
 } from '../src/lib/schema.ts';
 import { catalog, prompt } from './helpers.ts';
+import { compositionCatalog } from './fixtures/catalog-data.ts';
 
-async function start() {
-  const app = createMcpHttpServer(catalog);
-  app.httpServer.listen(0, '127.0.0.1');
-  await once(app.httpServer, 'listening');
-  const address = app.httpServer.address();
-  assert.ok(address && typeof address !== 'string');
-  return { ...app, origin: `http://127.0.0.1:${address.port}` };
+// https://fetch.spec.whatwg.org/#port-blocking — an OS-assigned port can still be forbidden by Fetch.
+const fetchBlockedPorts = new Set([0, 1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95, 101, 102, 103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137, 139, 143, 161, 179, 389, 427, 465, 512, 513, 514, 515, 526, 530, 531, 532, 540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993, 995, 1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080]);
+
+async function start(source = catalog) {
+  const app = createMcpHttpServer(source);
+  const rejected: number[] = [];
+  try {
+    for (let attempt = 1; attempt <= 8; attempt++) {
+      app.httpServer.listen(0, '127.0.0.1'); await once(app.httpServer, 'listening');
+      const address = app.httpServer.address(); assert.ok(address && typeof address !== 'string');
+      const origin = `http://127.0.0.1:${address.port}`;
+      const blocked = fetchBlockedPorts.has(address.port);
+      console.log(JSON.stringify({ fixture: 'mcp-test-listener', attempt, address: address.address, port: address.port, url: `${origin}/mcp`, blocked_by_fetch: blocked }));
+      if (!blocked) return { ...app, origin };
+      // Reallocate only a confirmed forbidden port, before any client or contract assertion runs.
+      rejected.push(address.port);
+      await new Promise<void>((resolve, reject) => app.httpServer.close(error => error ? reject(error) : resolve()));
+    }
+    throw new Error(`No Fetch-compatible ephemeral port after 8 allocations; rejected ports: ${rejected.join(', ')}`);
+  } catch (error) { await app.close(); throw error; }
 }
 
 const validator = new AjvJsonSchemaValidator();
@@ -27,9 +41,9 @@ test('multiword match reasons reflect real fields, deduplicate sources and agree
   const app = await start(); t.after(() => app.close());
   const index = createSearchCatalog(catalog);
   const cases = [
-    { query: 'no logo', ids: ['mint-watercolor-avatar', 'seaside-watercolor-station', 'shiba-reaction-stickers', 'sleepy-cat-four-panel', 'stargazer-character-sheet'], reasons: ['提示词正文关键词匹配'] },
-    { query: 'no logo watermark ui delicate pencil linework translucent', ids: ['mint-watercolor-avatar'], reasons: ['提示词正文关键词匹配'] },
-    { query: 'avatar 薄荷 no logo', ids: ['mint-watercolor-avatar'], reasons: ['用途、画风或模型词表匹配', '名称、关键词或简介匹配', '提示词正文关键词匹配'] },
+    { query: 'no logo', ids: ['fixture-avatar', 'fixture-character', 'fixture-comic', 'fixture-scenery', 'fixture-sticker', 'fixture-wallpaper'], reasons: ['提示词正文关键词匹配'] },
+    { query: 'no logo watermark ui delicate pencil linework translucent', ids: ['fixture-avatar'], reasons: ['提示词正文关键词匹配'] },
+    { query: 'avatar 薄荷 no logo', ids: ['fixture-avatar'], reasons: ['用途、画风或模型词表匹配', '名称、关键词或简介匹配', '提示词正文关键词匹配'] },
   ];
   for (const mode of ['modern', 'legacy'] as const) {
     const client = new Client({ name: `${mode}-match-reasons-test`, version: '1.0.0' }, { versionNegotiation: { mode: mode === 'modern' ? { pin: '2026-07-28' } : 'legacy' } });
@@ -38,11 +52,11 @@ test('multiword match reasons reflect real fields, deduplicate sources and agree
     const listing = await client.listTools();
     const schema = listing.tools.find(tool => tool.name === 'search_prompts')!.outputSchema!;
     for (const { query, ids, reasons } of cases) {
-      const full = searchPrompts(catalog, { query }); assert.ok(full.ok);
+      const full = searchPrompts(catalog, { query, limit: 20 }); assert.ok(full.ok);
       assert.deepEqual(full.data.items.map(item => item.id), ids);
       for (const item of full.data.items) assert.deepEqual(item.match_reasons, reasons);
-      assert.deepEqual(searchPrompts(index, { query }), full);
-      const response = await client.callTool({ name: 'search_prompts', arguments: { query } });
+      assert.deepEqual(searchPrompts(index, { query, limit: 20 }), full);
+      const response = await client.callTool({ name: 'search_prompts', arguments: { query, limit: 20 } });
       assert.equal(response.isError, false);
       const checked = validator.getValidator(schema)(response.structuredContent); assert.ok(checked.valid, checked.errorMessage);
       const structured = response.structuredContent as { result?: unknown };
@@ -84,7 +98,7 @@ test('real Streamable HTTP client discovers typed tools and calls search → get
   const detailResponse = await call('get_prompt', { id: item.id, expected_revision: item.prompt_revision, include_examples: true });
   const detail = getResultSchema.parse(detailResponse.structuredContent);
   assert.ok(detail.ok); assert.deepEqual(detail, getPrompt(catalog, { id: item.id, expected_revision: item.prompt_revision, include_examples: true }));
-  assert.deepEqual(detail.data, prompt);
+  assert.deepEqual(detail.data, { ...prompt, capabilities: promptCapabilities(prompt) });
   const args = { id: item.id, expected_revision: detail.data.prompt_revision, variables: { subject: 'an adult anime traveler holding a sketchbook' } };
   const renderedResponse = await call('render_prompt', args);
   const rendered = renderResultSchema.parse(renderedResponse.structuredContent);
@@ -140,6 +154,46 @@ test('legacy MCP HTTP clients receive valid SDK-projected schemas and the same b
   const structured = response.structuredContent as { result?: unknown };
   const result = getResultSchema.parse(structured.result ?? structured);
   assert.deepEqual(result, getPrompt(catalog, { id: prompt.id }));
+});
+
+test('modern and legacy HTTP clients discover capabilities and share exact format, mode and addition behavior', async t => {
+  const app = await start(compositionCatalog); t.after(() => app.close());
+  const dual = compositionCatalog.prompts.find(item => item.id === 'fixture-dual')!;
+  for (const mode of ['modern', 'legacy'] as const) {
+    const client = new Client({ name: `${mode}-composition`, version: '1' }, { versionNegotiation: { mode: mode === 'modern' ? { pin: '2026-07-28' } : 'legacy' } });
+    t.after(() => client.close()); await client.connect(new StreamableHTTPClientTransport(new URL(`${app.origin}/mcp`)));
+    const { tools } = await client.listTools();
+    const call = async (name: string, args: Record<string, unknown>) => {
+      const response = await client.callTool({ name, arguments: args });
+      const checked = validator.getValidator(tools.find(tool => tool.name === name)!.outputSchema!)(response.structuredContent); assert.ok(checked.valid, checked.errorMessage);
+      const value = response.structuredContent as { result?: unknown };
+      return { response, value: value.result ?? value };
+    };
+    const found = searchResultSchema.parse((await call('search_prompts', {})).value); assert.ok(found.ok);
+    assert.deepEqual(found.data.items.find(item => item.id === dual.id)!.capabilities.formats, ['text', 'tags']);
+    const detail = getResultSchema.parse((await call('get_prompt', { id: dual.id, expected_revision: dual.prompt_revision })).value); assert.ok(detail.ok);
+    assert.deepEqual(detail.data.customization, dual.customization);
+    const base = { id: dual.id, expected_revision: detail.data.prompt_revision, variables: { subject: 'an adult traveler 😀 $& {subject}' } };
+    for (const args of [base, { ...base, format: 'text', input_mode: 'text', additions: { preset_ids: ['happy', 'blush'], custom: '(blue eyes:1.2)\n字面 {subject} $&' } }, { ...base, format: 'tags', input_mode: 'reference-image', additions: { preset_ids: ['angry'], custom: '{literal}' } }]) {
+      const { response, value } = await call('render_prompt', args);
+      assert.equal(response.isError, false); assert.deepEqual(renderResultSchema.parse(value), renderPrompt(compositionCatalog, args));
+    }
+    for (const [extra, code] of [
+      [{ format: 'unknown' }, 'INVALID_INPUT'],
+      [{ input_mode: 'direct' }, 'INPUT_MODE_UNSUPPORTED'],
+      [{ additions: { custom: '😀'.repeat(2001) } }, 'INVALID_INPUT'],
+      [{ additions: { preset_ids: ['invented'] } }, 'INVALID_ADDITIONS'],
+      [{ additions: { preset_ids: ['happy', 'angry'] } }, 'INVALID_ADDITIONS'],
+      [{ additions: { preset_ids: [], unknown: true } }, 'INVALID_INPUT'],
+    ] as const) {
+      const { response, value } = await call('render_prompt', { ...base, ...extra }); assert.equal(response.isError, true);
+      const failure = failureSchema.parse(value); assert.equal(failure.error.code, code); assert.deepEqual(failure, renderPrompt(compositionCatalog, { ...base, ...extra }));
+    }
+    const textOnly = compositionCatalog.prompts.find(item => item.id === 'fixture-text-only')!;
+    for (const [extra, code] of [[{ format: 'tags' }, 'FORMAT_UNSUPPORTED'], [{ additions: { custom: 'happy' } }, 'ADDITIONS_UNSUPPORTED']] as const) {
+      const { response, value } = await call('render_prompt', { id: textOnly.id, expected_revision: textOnly.prompt_revision, variables: {}, ...extra }); assert.equal(response.isError, true); assert.equal(failureSchema.parse(value).error.code, code);
+    }
+  }
 });
 
 for (const mode of ['modern', 'legacy'] as const) {

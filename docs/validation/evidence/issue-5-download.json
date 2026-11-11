@@ -1,0 +1,19 @@
+{
+  "checked_at": "2026-11-10T04:24:16.049Z",
+  "origin": "https://anime-prompt-atelier.memorablestone1.chatgpt.site",
+  "stage": "distribution",
+  "catalog_revision": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c",
+  "prompt_count": 7,
+  "plugin": {
+    "version": "0.1.1",
+    "archive": "/downloads/anime-prompt-atelier-0.1.1.zip",
+    "archive_sha256": "2ad6726d589a6a85a39fece7f7598a40bb82e7831daed7fb3c465a5b0e1cdb32",
+    "marketplace_ref": "plugin-release",
+    "catalog_revision_at_build": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c"
+  },
+  "download_http_status": 200,
+  "download_bytes": 8114,
+  "download_sha256": "2ad6726d589a6a85a39fece7f7598a40bb82e7831daed7fb3c465a5b0e1cdb32",
+  "authentication": "anonymous; no cookies or credentials",
+  "result": "pass"
+}

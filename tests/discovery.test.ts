@@ -16,22 +16,33 @@ test('all published purposes and aliases find their corresponding real content',
       assert.ok(result.data.items.some(item => item.use_cases.includes(term.id)), `${query} should find ${term.id}`);
     }
   }
-  assert.deepEqual(ids({ query: 'watercolor wallpaper' }), ['seaside-watercolor-station']);
-  assert.deepEqual(ids({ query: 'ＷＡＴＥＲＣＯＬＯＲ', use_cases: ['avatar'] }), ['mint-watercolor-avatar']);
+  assert.deepEqual(ids({ query: 'watercolor wallpaper' }), ['fixture-scenery']);
+  assert.deepEqual(ids({ query: 'ＷＡＴＥＲＣＯＬＯＲ', use_cases: ['avatar'] }), ['fixture-avatar']);
   assert.deepEqual(ids({ query: 'cherry clouds', use_cases: ['wallpaper'] }), [prompt.id]);
-  assert.deepEqual(ids({ query: 'hand-painted' }), ['mint-watercolor-avatar', 'seaside-watercolor-station']);
+  assert.deepEqual(ids({ query: 'hand-painted' }), ['fixture-avatar', 'fixture-scenery']);
   assert.equal(ids({ query: 'anime' })[0], prompt.id);
 });
 
 test('same-dimension OR and cross-dimension AND preserve deterministic relevance and ID ordering', () => {
-  assert.deepEqual(ids({ use_cases: ['avatar', 'scenery'], styles: ['watercolor'] }), ['mint-watercolor-avatar', 'seaside-watercolor-station']);
+  assert.deepEqual(ids({ use_cases: ['avatar', 'scenery'], styles: ['watercolor'] }), ['fixture-avatar', 'fixture-scenery']);
   assert.deepEqual(ids({ use_cases: ['avatar', 'scenery'], styles: ['retro-cel'] }), []);
   const all = searchPrompts(catalog, { limit: 20 }); assert.ok(all.ok);
-  assert.deepEqual(all.data.items.map(item => item.id), catalog.prompts.map(item => item.id).sort());
+  const orderedIds = catalog.prompts.map(item => item.id).sort();
+  assert.deepEqual(all.data.items.map(item => item.id), orderedIds.slice(0, 20));
   const first = searchPrompts(catalog); assert.ok(first.ok); assert.equal(first.data.items.length, 5); assert.ok(first.data.next_cursor);
-  const last = searchPrompts(catalog, { cursor: first.data.next_cursor }); assert.ok(last.ok);
-  assert.equal(last.data.items.length, 1); assert.equal(last.data.next_cursor, null);
-  assert.equal(new Set([...first.data.items, ...last.data.items].map(item => item.id)).size, 6);
+  const pagedIds = first.data.items.map(item => item.id);
+  let cursor: string | null = first.data.next_cursor;
+  while (cursor) {
+    const page = searchPrompts(catalog, { cursor }); assert.ok(page.ok);
+    assert.deepEqual(page.data.items.map(item => item.id), orderedIds.slice(pagedIds.length, pagedIds.length + first.data.items.length));
+    assert.ok(page.data.items.length > 0 && page.data.items.length <= 5);
+    pagedIds.push(...page.data.items.map(item => item.id));
+    assert.ok(pagedIds.length <= catalog.prompts.length);
+    cursor = page.data.next_cursor;
+  }
+  assert.equal(cursor, null);
+  assert.deepEqual(pagedIds, orderedIds);
+  assert.equal(new Set(pagedIds).size, catalog.prompts.length);
   for (const input of [{ query: 'different', cursor: first.data.next_cursor }, { use_cases: ['avatar'], cursor: first.data.next_cursor }, { styles: ['watercolor'], cursor: first.data.next_cursor }, { model: 'x', cursor: first.data.next_cursor }, { limit: 20, cursor: first.data.next_cursor }]) {
     const result = searchPrompts(catalog, input); assert.ok(!result.ok); assert.equal(result.error.code, 'INVALID_CURSOR');
   }
@@ -44,7 +55,7 @@ test('model vocabulary aliases retain verified, declared, incompatible and unkno
   const scoped = structuredClone(catalog);
   scoped.taxonomy.models = [{ id: 'fixture-model', label: '夹具模型', aliases: ['Fixture Alias'] }];
   scoped.prompts.forEach((item, index) => { item.model_compatibility = index < 3 ? [{ model: 'fixture-model', status: (['verified', 'declared', 'incompatible'] as const)[index]!, note: '仅测试夹具中的模拟证据' }] : []; });
-  assert.equal(ids({ model: 'Fixture Alias', limit: 20 }, scoped).length, 5);
+  assert.equal(ids({ model: 'Fixture Alias', limit: 20 }, scoped).length, Math.min(20, scoped.prompts.length - 1));
   assert.deepEqual(ids({ model: '夹具模型', verified_only: true }, scoped), [scoped.prompts[0]!.id]);
   const bad = scoped.prompts[2]!;
   const rendered = renderPrompt(scoped, { id: bad.id, expected_revision: bad.prompt_revision, variables: {}, model: 'Fixture Alias' });

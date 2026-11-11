@@ -13,7 +13,7 @@ import matter from 'gray-matter';
 import { z } from 'zod';
 import { getPrompt, renderPrompt, searchPrompts } from '../src/lib/catalog.ts';
 import { createMcpHttpServer } from '../src/server/mcp.ts';
-import { buildPlugin, endpoint, pluginConfig, repositoryRoot, sha256, validatePlugin } from '../scripts/plugin/package.ts';
+import { buildPlugin, endpoint, listFiles, pluginConfig, repositoryRoot, sha256, validatePlugin } from '../scripts/plugin/package.ts';
 import { isolatedCliEnvironment } from '../scripts/plugin/codex.ts';
 import { verifyRemoteContract } from '../scripts/plugin/contract.ts';
 import { assessTrace, evaluationCaseSchema, parseEvents } from '../scripts/plugin/traces.ts';
@@ -115,6 +115,42 @@ test('package validation detects changed connection, implicit discovery, asset b
   const icon = path.join(built.pluginRoot, 'assets/icon.svg'), iconBytes = await readFile(icon);
   await writeFile(icon, '<svg/>'); await assert.rejects(validatePlugin(built.pluginRoot), /哈希/); await writeFile(icon, iconBytes);
   await rm(icon); await assert.rejects(validatePlugin(built.pluginRoot), /ENOENT/);
+});
+
+test('Git marketplace clones preserve every plugin byte and hash with core.autocrlf=true, while an unprotected clone reproduces the failure', async t => {
+  const resources = resourcesFor(t), directory = await temporary(resources);
+  const built = await buildPlugin({ output: path.join(directory, 'package'), mcpUrl: 'http://127.0.0.1:5432/mcp', galleryUrl: 'http://127.0.0.1:5433/', mode: 'evaluation' });
+  assert.equal(await readFile(path.join(built.marketplaceRoot, '.gitattributes'), 'utf8'), '* -text\n');
+  const gitGlobal = path.join(directory, 'empty-gitconfig'); await writeFile(gitGlobal, '');
+  const env = { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: gitGlobal, GIT_CONFIG_COUNT: '0' };
+  // All Git writes stay in the disposable fixture, independent of caller/global repository settings.
+  for (const key of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR']) delete env[key as keyof typeof env];
+  const run = promisify(execFile);
+  const git = (args: string[], cwd = directory) => run('git', args, { cwd, env, windowsHide: true, timeout: 15000 });
+  await git(['init', '--initial-branch=fixture'], built.marketplaceRoot);
+  await git(['-c', 'core.autocrlf=true', 'add', '--all'], built.marketplaceRoot);
+  const commit = (message: string) => git(['-c', 'user.name=Fixture Test', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '--message', message], built.marketplaceRoot);
+  await commit('Protect generated distribution bytes');
+  const cloned = path.join(directory, 'protected-clone');
+  await git(['clone', '--no-local', '--config', 'core.autocrlf=true', built.marketplaceRoot, cloned]);
+  assert.equal((await git(['config', '--get', 'core.autocrlf'], cloned)).stdout.trim(), 'true');
+  const pluginRoot = path.join(cloned, 'plugins', pluginConfig.name);
+  const originalFiles = await listFiles(built.pluginRoot), clonedFiles = await listFiles(pluginRoot);
+  assert.deepEqual([...clonedFiles.keys()].sort(), [...originalFiles.keys()].sort());
+  for (const [name, bytes] of originalFiles) {
+    assert.deepEqual(clonedFiles.get(name), bytes, name);
+    assert.equal(sha256(clonedFiles.get(name)!), built.report.files[name], name);
+  }
+  assert.deepEqual(await validatePlugin(pluginRoot), await validatePlugin(built.pluginRoot));
+
+  // A real second checkout without the generated attributes must change LF files. This prevents a vacuous pass.
+  await git(['rm', '--', '.gitattributes'], built.marketplaceRoot); await commit('Reproduce unprotected checkout');
+  const unprotected = path.join(directory, 'unprotected-clone');
+  await git(['clone', '--no-local', '--config', 'core.autocrlf=true', built.marketplaceRoot, unprotected]);
+  const changedSkill = await readFile(path.join(unprotected, 'plugins', pluginConfig.name, 'skills', pluginConfig.skillName, 'SKILL.md'));
+  assert.ok(changedSkill.includes(Buffer.from('\r\n')), 'The unprotected control must actually apply CRLF checkout conversion');
+  assert.notEqual(sha256(changedSkill), built.report.files[`skills/${pluginConfig.skillName}/SKILL.md`]);
+  await assert.rejects(validatePlugin(path.join(unprotected, 'plugins', pluginConfig.name)), /内容哈希不同/);
 });
 
 test('release preflight really discovers, searches, reads and renders a service and compares the gallery snapshot', async t => {

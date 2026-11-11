@@ -1,0 +1,125 @@
+{
+  "checked_at": "2026-11-10T04:24:05.177Z",
+  "origin": "https://anime-prompt-atelier.memorablestone1.chatgpt.site",
+  "authentication": "anonymous; no cookies, Authorization, or local server",
+  "protocols": [
+    {
+      "mode": "legacy",
+      "tools": [
+        "get_prompt",
+        "render_prompt",
+        "search_prompts"
+      ],
+      "id": "mint-watercolor-avatar",
+      "prompt_revision": "sha256:368aa838aeaac1fdc95e3713be5073d6ae5070a65ac287b39a3e55492e976d31",
+      "rendered_characters": 677,
+      "invalid_input": "INVALID_INPUT",
+      "requests": [
+        {
+          "status": 200,
+          "cache": "no-store",
+          "timing": "app;dur=0.000"
+        },
+        {
+          "status": 202,
+          "cache": "no-store",
+          "timing": "app;dur=0.000"
+        },
+        {
+          "status": 405,
+          "cache": "no-store",
+          "timing": "app;dur=0.000"
+        },
+        {
+          "status": 200,
+          "cache": "no-store",
+          "timing": "app;dur=0.000"
+        },
+        {
+          "status": 200,
+          "cache": "no-store",
+          "timing": "app;dur=0.000"
+        },
+        {
+          "status": 200,
+          "cache": "no-store",
+          "timing": "app;dur=0.000"
+        },
+        {
+          "status": 200,
+          "cache": "no-store",
+          "timing": "app;dur=0.000"
+        },
+        {
+          "status": 200,
+          "cache": "no-store",
+          "timing": "app;dur=0.000"
+        }
+      ]
+    },
+    {
+      "mode": {
+        "pin": "2026-07-28"
+      },
+      "tools": [
+        "get_prompt",
+        "render_prompt",
+        "search_prompts"
+      ],
+      "id": "mint-watercolor-avatar",
+      "prompt_revision": "sha256:368aa838aeaac1fdc95e3713be5073d6ae5070a65ac287b39a3e55492e976d31",
+      "rendered_characters": 677,
+      "invalid_input": "INVALID_INPUT",
+      "requests": [
+        {
+          "status": 200,
+          "cache": "no-store",
+          "timing": "app;dur=0.000"
+        },
+        {
+          "status": 200,
+          "cache": "no-store",
+          "timing": "app;dur=0.000"
+        },
+        {
+          "status": 200,
+          "cache": "no-store",
+          "timing": "app;dur=0.000"
+        },
+        {
+          "status": 200,
+          "cache": "no-store",
+          "timing": "app;dur=0.000"
+        },
+        {
+          "status": 200,
+          "cache": "no-store",
+          "timing": "app;dur=0.000"
+        },
+        {
+          "status": 200,
+          "cache": "no-store",
+          "timing": "app;dur=0.000"
+        }
+      ]
+    }
+  ],
+  "http": [
+    {
+      "case": "foreign-origin",
+      "status": 403
+    },
+    {
+      "case": "oversized-body",
+      "status": 413
+    },
+    {
+      "case": "real-image",
+      "status": 200,
+      "bytes": 83682
+    }
+  ],
+  "catalog_revision": "sha256:3659a777dc61c781dc5be27ed089775b64ee48ddd534ef3fb0cb792d0163310c",
+  "prompt_count": 7,
+  "result": "pass"
+}

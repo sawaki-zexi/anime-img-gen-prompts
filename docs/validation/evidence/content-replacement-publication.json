@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "result": "pass",
+  "service": {
+    "checked_at": "2026-11-10T09:13:14.073Z",
+    "project_id": "appgprj_6af28af93d9081918cccb09ace648204",
+    "source_commit": "1549c287431e9997e84135322ce7c35aa1a04543",
+    "implementation_head": "f3ccd29c2743e448c2eedafc7b0da6ad0ff2ddf8",
+    "version_id": "appgprj_6af28af93d9081918cccb09ace648204~appgver_a14c3b8f0f088191829802605e818ef0",
+    "version_number": 6,
+    "deployment_id": "appgdep_6af2dff240d88191bd9f335fc057c195",
+    "status": "succeeded",
+    "url": "https://anime-prompt-atelier.memorablestone1.chatgpt.site",
+    "stage": "service-candidate",
+    "catalog_revision": "sha256:9f3651c5d185e417a07cd0ff13b3c7151474ce0e6f25d948ad3f891e81db3530",
+    "worker_sha256": "ad5b14873702b4f552cca8d9cc299c7ed88316fd4a2fb8ca22eacb9b2cfece01",
+    "record_count": 3
+  },
+  "distribution": {
+    "checked_at": "2026-11-10T09:18:26.501Z",
+    "project_id": "appgprj_6af28af93d9081918cccb09ace648204",
+    "source_commit": "c1c00d3ef825a47449fb322d40a0ee63383a293d",
+    "implementation_head": "f3ccd29c2743e448c2eedafc7b0da6ad0ff2ddf8",
+    "version_id": "appgprj_6af28af93d9081918cccb09ace648204~appgver_2567138fbb5081918ec4e069a951a9d7",
+    "version_number": 7,
+    "deployment_id": "appgdep_6af2e0b0211081919699e8829c7424ca",
+    "status": "succeeded",
+    "url": "https://anime-prompt-atelier.memorablestone1.chatgpt.site",
+    "stage": "distribution",
+    "catalog_revision": "sha256:9f3651c5d185e417a07cd0ff13b3c7151474ce0e6f25d948ad3f891e81db3530",
+    "worker_sha256": "933b2608487ba7697e97dd24f7f147876be1ee90cbf7113a6d1d08c8218a9725",
+    "record_count": 3,
+    "plugin_version": "0.1.2",
+    "plugin_distribution_commit": "44dead5160451786fecbf612c9a622c95185cd4a",
+    "plugin_archive_sha256": "4c144a36f9e81be4be1f82bca19a9404e233f88e100e9896567a8b3456400907",
+    "plugin_catalog_revision_at_build": "sha256:91f4117a1f51cdaf807e5fc0caf8e6ee6c9205923849e26e25410e6c6266de32",
+    "plugin_files_and_zip_rebuilt": false
+  },
+  "verification": "Service-v6 anonymous two-protocol, full original bodies, original decoded pixels and retired HTTP routes verified; distribution-v7 current manifest equals verified frozen artifact; browser, actual ZIP hash, and both unchanged existing installs verified on v7.",
+  "source_control_status": "PR9 is unmerged; public deployment is separate from merge approval.",
+  "clients": {
+    "codex_cli": "experimental",
+    "codex_desktop": "not verified",
+    "chatgpt": "not listed or verified",
+    "other_mcp": "protocol only"
+  },
+  "local_packaging": {
+    "initial_attempt": "Installed Node24.15.0 Astro subprocess exited3221226505 before an immutable output was written.",
+    "successful_runtime": "Already available Codex runtime Node24.22.1; no system configuration change; both frozen release directories passed offline verification."
+  }
+}

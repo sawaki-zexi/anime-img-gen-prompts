@@ -1,50 +1,65 @@
 ---
 import { catalog, localPath, sitePath, jsonForScript } from '../lib/site.ts';
-import { renderPrompt } from '../lib/catalog.ts';
+import { promptCapabilities, renderPrompt } from '../lib/catalog.ts';
 import type { Prompt } from '../lib/schema.ts';
 interface Props { prompt: Prompt; }
 const { prompt } = Astro.props;
 const example = prompt.examples[0]!;
+const hasVariables = Object.keys(prompt.variables).length > 0;
+const capabilities = promptCapabilities(prompt);
+const initialMode = capabilities.input_modes[0]!;
+const hasEditor = hasVariables || capabilities.customization || capabilities.formats.length > 1 || capabilities.input_modes.length > 1;
+const usage = { 'reference-image': '在生图工具中添加你的角色图片，再粘贴下面的提示词。', text: '填写角色描述，再把下面的提示词粘贴到生图工具中。', direct: '复制即可使用。' };
 const initial = renderPrompt(catalog, { id: prompt.id, expected_revision: prompt.prompt_revision, variables: {} });
 const label = (id: string) => [...catalog.taxonomy.use_cases, ...catalog.taxonomy.styles, ...catalog.taxonomy.models].find(term => term.id === id)?.label ?? id;
-const statuses = { verified: '已验证', declared: '作者声明', unknown: '未知', incompatible: '明确不兼容' };
 const parameterNames: Record<string, string> = { transparent_background: '透明背景', seed: '种子', sampler: '采样器', steps: '步数', cfg_scale: '引导强度', width: '生成宽度', height: '生成高度', size: '尺寸', aspect_ratio: '画幅比', quality: '质量' };
-const parameterValue = (value: string | number | boolean | null) => value === null ? '未知' : typeof value === 'boolean' ? value ? '是' : '否' : String(value);
-const readableParameters = Object.entries(example.parameters).map(([key, value]) => `${parameterNames[key] ?? key}：${parameterValue(value)}`).join('；');
+const readableParameters = Object.entries(example.parameters).filter(([, value]) => value !== null).map(([key, value]) => `${parameterNames[key] ?? key}：${typeof value === 'boolean' ? value ? '是' : '否' : String(value)}`).join('；');
+const imageInfo = (item: Prompt['examples'][number]) => [!['未提供', '未知', 'unknown'].includes(item.generator.toLowerCase()) ? item.generator : '', prompt.input_modes?.length === 1 && initialMode === 'reference-image' ? '参考图生成' : ''].filter(Boolean).join(' · ');
 ---
 <div class="page-shell detail-shell" data-prompt-revision={prompt.prompt_revision}>
-  <a class="back-link" href={sitePath('#gallery')}>← 回到灵感画廊</a>
-  <header class="detail-heading"><div><span class="eyebrow">A PROMPT, YOUR STORY</span><h1>{prompt.title}<span aria-hidden="true"> ✦</span></h1><p>{prompt.summary}</p></div><div class="tag-row">{[...prompt.use_cases, ...prompt.styles].map(id => <span class="badge badge-soft">{label(id)}</span>)}</div></header>
+  <a class="back-link" href={sitePath('#gallery')}>← 画廊</a>
+  <header class="detail-heading"><h1>{prompt.title}</h1><div class="tag-row">{[...prompt.use_cases, ...prompt.styles].map(id => <span class="badge badge-soft">{label(id)}</span>)}</div></header>
   <div class="detail-workspace">
     <div class="detail-preview-column">
-      <figure class="detail-art"><a href={localPath(example.image)} target="_blank" rel="noreferrer" aria-label="在新窗口查看完整示例图"><img src={localPath(example.image)} width={example.width} height={example.height} alt={example.alt} loading="lazy" decoding="async" /></a><figcaption><span>✧ 实际生成示例 · {example.created_at}</span><a href={localPath(example.image)} target="_blank" rel="noreferrer">查看原尺寸 ↗</a></figcaption></figure>
-      {prompt.examples.length > 1 && <details class="card more-examples" id="more-examples"><summary>更多真实示例（{prompt.examples.length - 1}）</summary>{prompt.examples.slice(1).map(item => <figure class="additional-example"><a href={localPath(item.image)} target="_blank" rel="noreferrer"><img data-src={localPath(item.image)} width={item.width} height={item.height} alt={item.alt} loading="lazy" /></a><figcaption>{item.created_at} · {item.generator} · {item.model ?? '底层模型未知'}</figcaption><p>{item.provenance}</p><label>实际生成提示词<textarea class="textarea prompt-text" readonly rows="5">{item.effective_prompt}</textarea></label></figure>)}</details>}
-      <section class="card info-card" aria-labelledby="conditions-title"><span class="eyebrow">BEFORE YOU CREATE</span><h2 id="conditions-title">这张图是怎么来的</h2><dl class="generation-facts"><div><dt>生成工具</dt><dd>{example.generator}</dd></div><div><dt>底层模型 / 版本</dt><dd>{example.model ?? '未知 · 工具未提供'}</dd></div><div><dt>实际尺寸</dt><dd>{example.width} × {example.height} 像素</dd></div><div><dt>已知生成参数</dt><dd>{readableParameters || '种子与其他参数未知'}</dd></div></dl><h3 class="compatibility-heading">模型适用性</h3>{prompt.model_compatibility.length ? <ul class="compatibility-list">{prompt.model_compatibility.map(item => <li><strong>{label(item.model)} · {statuses[item.status]}</strong><p>{item.note}</p></li>)}</ul> : <p class="model-note">具体模型兼容性未知，尚无已验证记录。</p>}<ul class="condition-list">{prompt.conditions.map(condition => <li>{condition}</li>)}</ul></section>
-      <section class="card source-card" aria-labelledby="source-title"><span class="eyebrow">CREDIT & ORIGIN</span><h2 id="source-title">来源与使用说明</h2><p>{prompt.source.author}</p><p>{prompt.source.origin}</p><p class="source-note">提示词文本：{prompt.source.text_license}</p><p class="source-note">示例图片：{prompt.source.image_license}</p><details><summary>查看完整生成记录</summary><p>{example.provenance}</p><p>生成时模板版本：{example.template_version}</p><label class="label" for="effective-prompt">示例实际使用的完整提示词</label><textarea class="textarea prompt-text source-prompt" id="effective-prompt" readonly rows="8">{example.effective_prompt}</textarea><p>实际变量：{JSON.stringify(example.variables)}</p><p>原始参数记录：{JSON.stringify(example.parameters)}</p></details></section>
+      <figure class="detail-art"><a href={localPath(example.image)} target="_blank" rel="noreferrer" aria-label="在新窗口查看原图"><img src={localPath(example.image)} width={example.width} height={example.height} alt={example.alt} loading="lazy" decoding="async" /></a></figure>
+      {prompt.examples.length > 1 && <details class="card more-examples" id="more-examples"><summary>更多配图（{prompt.examples.length - 1}）</summary>{prompt.examples.slice(1).map(item => <figure class="additional-example"><a href={localPath(item.image)} target="_blank" rel="noreferrer"><img data-src={localPath(item.image)} width={item.width} height={item.height} alt={item.alt} loading="lazy" /></a><figcaption>{[imageInfo(item), item.model, item.created_at].filter(Boolean).join(' · ')}</figcaption></figure>)}</details>}
+      <details class="card source-card">
+        <summary>图片信息</summary>
+        {imageInfo(example) && <p>{imageInfo(example)}</p>}
+        <p>{prompt.source.author}</p>
+        {example.model && <p>模型：{example.model}</p>}
+        {example.created_at && <p>生成日期：{example.created_at}</p>}
+        {readableParameters && <p>{readableParameters}</p>}
+      </details>
     </div>
     <div class="detail-editor-column">
-      <section class="card editor-card" aria-labelledby="editor-title">
-        <div class="panel-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2 id="editor-title">填入你的想象</h2></div><span class="badge language-label">{prompt.language === 'en' ? '英文' : '中文'}提示词</span></div><p class="panel-description">使用默认输入，或按说明填写自己的创作设定。</p>
-        <form id="variables-form" novalidate>
+      <section class:list={['card', hasEditor ? 'editor-card' : 'original-card']} aria-labelledby="editor-title">
+        <div class="panel-heading"><h2 id="editor-title">提示词</h2></div>
+        {capabilities.input_modes.length > 1 && <fieldset class="input-mode-choice" id="input-mode-choice"><legend>你有角色图吗？</legend>{capabilities.input_modes.map((mode, index) => <label class="mode-option"><input class="radio radio-sm" type="radio" name="input-mode" value={mode} checked={index === 0} />{mode === 'reference-image' ? '我有角色图' : '我用文字描述'}</label>)}</fieldset>}
+        <p class="panel-description" id="usage-guide" data-input-mode={initialMode}>{usage[initialMode]}</p>
+        {hasVariables && <form id="variables-form" novalidate>
           {Object.entries(prompt.variables).map(([name, variable]) => <div class="variable-field">
-            <label class="label" for={`variable-${name}`}>{variable.label}{variable.required && <span class="required-label">必填</span>}</label>
+            <label class="label" for={`variable-${name}`}>{name === prompt.character_variable ? '角色描述' : variable.label}{variable.required && <span class="required-label">必填</span>}</label>
             {variable.options ? <select class="select" id={`variable-${name}`} name={name} required={variable.required} aria-describedby={`help-${name} error-${name}`} data-variable={name}>
               {(!variable.required || variable.default === undefined) && <option value="">{variable.required ? '请选择' : '不填写'}</option>}
               {variable.options.map(value => <option value={value} selected={value === variable.default}>{value}</option>)}
-            </select> : <textarea class="textarea" id={`variable-${name}`} name={name} rows="3" required={variable.required} aria-describedby={`help-${name} error-${name}`} data-variable={name}>{variable.default ?? ''}</textarea>}
+            </select> : <textarea class="textarea" id={`variable-${name}`} name={name} rows="3" required={variable.required} placeholder={name === prompt.character_variable ? '例如：银发、蓝眼睛，穿着深蓝外套的成年角色' : undefined} aria-describedby={`help-${name} error-${name}`} data-variable={name}>{variable.default ?? ''}</textarea>}
             <p class="field-help" id={`help-${name}`}>{variable.description}（最多 {variable.max_length} 个字符）</p><p class="field-error" id={`error-${name}`} hidden></p>
           </div>)}
-          <button class="btn btn-ghost btn-sm reset-variables" type="reset">恢复默认输入 ↺</button>
-        </form>
-        <div class="render-heading"><h3>填写后的正向提示词</h3><span class="preview-label">实时预览</span></div><p class="alert validation-error" id="render-error" role="alert" hidden></p><label class="sr-only" for="rendered-prompt">填写后的正向提示词</label><textarea class="textarea prompt-text" id="rendered-prompt" readonly rows="9">{initial.ok ? initial.data.prompt : ''}</textarea><div class="copy-row"><button class="btn btn-primary" id="copy-rendered" type="button" disabled={!initial.ok}>复制填写后的提示词 <span aria-hidden="true">↗</span></button><span class="copy-status" id="render-copy-status" role="status" aria-live="polite"></span></div>
-        {prompt.negative_template && <div class="negative-section"><div class="render-heading"><h3>填写后的负面提示词</h3><span class="preview-label">单独使用</span></div><label class="sr-only" for="rendered-negative">填写后的负面提示词</label><textarea class="textarea prompt-text" id="rendered-negative" readonly rows="4">{initial.ok ? initial.data.negative_prompt : ''}</textarea><div class="copy-row"><button class="btn btn-outline" id="copy-rendered-negative" type="button" disabled={!initial.ok}>复制填写后的负面提示词</button><span class="copy-status" id="negative-copy-status" role="status" aria-live="polite"></span></div></div>}
-        <noscript><p class="alert">启用 JavaScript 后可填写变量与使用复制按钮；也可直接选择模板文本复制。</p></noscript>
+          <button class="btn btn-ghost btn-sm reset-variables" type="reset">恢复默认</button>
+        </form>}
+        {capabilities.customization && <section class="additions-panel" id="additions-panel" aria-labelledby="additions-title"><h3 id="additions-title">附加提示词（选填）</h3><div class="preset-options">{prompt.customization!.presets.map(preset => <button class="btn btn-outline btn-sm preset-option" type="button" data-preset-id={preset.id} aria-pressed="false">{preset.label}</button>)}</div>{prompt.customization!.allow_custom && <><label class="label" for="custom-additions">自定义内容</label><textarea class="textarea" id="custom-additions" rows="3" placeholder="还想加些什么？可以直接填写提示词或标签。" aria-describedby="custom-additions-help"></textarea><p class="field-help" id="custom-additions-help">按原样加入提示词，最多 2,000 个字符。</p></>}<button class="btn btn-ghost btn-sm" id="clear-additions" type="button" hidden>清除附加内容</button></section>}
+        {capabilities.formats.length > 1 && <label class="format-choice" for="prompt-format">提示词格式<select class="select select-sm" id="prompt-format">{capabilities.formats.map(format => <option value={format}>{format === 'text' ? '全文' : '标签'}</option>)}</select></label>}
+        <p class="alert validation-error" id="render-error" role="alert" hidden></p>
+        <label class="sr-only" for={hasEditor ? 'rendered-prompt' : 'original-prompt'}>可复制的提示词</label><textarea class="textarea prompt-text" id={hasEditor ? 'rendered-prompt' : 'original-prompt'} readonly rows={hasEditor ? 9 : prompt.body_format === 'tags' ? 4 : 14}>{initial.ok ? initial.data.prompt : ''}</textarea>
+        <div class="copy-row">{capabilities.formats.map((format, index) => <button class:list={['btn', index === 0 ? 'btn-primary' : 'btn-outline']} id={index === 0 ? hasEditor ? 'copy-rendered' : 'copy-original' : 'copy-tags'} data-copy-format={format} type="button" disabled={!initial.ok}>{format === 'text' ? '复制完整提示词' : '复制标签'}</button>)}<span class="copy-status" id={hasEditor ? 'render-copy-status' : 'original-copy-status'} role="status" aria-live="polite"></span></div>
+        {(prompt.negative_template || prompt.tag_negative_template) && <div class="negative-section" id="negative-section" hidden={!initial.ok || !initial.data.negative_prompt}><div class="render-heading"><h3>负面提示词</h3></div><label class="sr-only" for="rendered-negative">负面提示词</label><textarea class="textarea prompt-text" id="rendered-negative" readonly rows="4">{initial.ok ? initial.data.negative_prompt : ''}</textarea><div class="copy-row"><button class="btn btn-outline" id="copy-rendered-negative" type="button" disabled={!initial.ok}>复制负面提示词</button><span class="copy-status" id="negative-copy-status" role="status" aria-live="polite"></span></div></div>}
+        {hasVariables && <details class="template-original"><summary>查看模板原文</summary><label class="sr-only" for="original-prompt">模板原文</label><textarea class="textarea prompt-text" id="original-prompt" readonly rows="7">{prompt.template}</textarea><div class="copy-row"><button class="btn btn-outline btn-sm" id="copy-original" type="button">复制模板原文</button><span class="copy-status" id="original-copy-status" role="status" aria-live="polite"></span></div>{prompt.negative_template && <div class="negative-section"><label class="label" for="original-negative">负面原文</label><textarea class="textarea prompt-text" id="original-negative" readonly rows="4">{prompt.negative_template}</textarea><div class="copy-row"><button class="btn btn-outline btn-sm" id="copy-original-negative" type="button">复制负面原文</button><span class="copy-status" id="original-negative-copy-status" role="status" aria-live="polite"></span></div></div>}</details>}
+        <noscript><p class="alert">启用 JavaScript 使用填写与复制功能，或直接选择提示词复制。</p></noscript>
       </section>
-      <section class="card original-card" aria-labelledby="original-title"><div class="panel-heading"><div><span class="eyebrow">THE ORIGINAL TEMPLATE</span><h2 id="original-title">提示词原文</h2></div><span class="badge badge-soft">保留变量占位符</span></div><p class="panel-description">直接复制模板，自行修改；填写区会帮你完成变量替换。</p><label class="label" for="original-prompt">正向提示词模板</label><textarea class="textarea prompt-text" id="original-prompt" readonly rows="7">{prompt.template}</textarea><div class="copy-row"><button class="btn btn-outline" id="copy-original" type="button">复制原文</button><span class="copy-status" id="original-copy-status" role="status" aria-live="polite"></span></div>{prompt.negative_template && <div class="negative-section"><label class="label" for="original-negative">负面提示词模板</label><textarea class="textarea prompt-text" id="original-negative" readonly rows="4">{prompt.negative_template}</textarea><div class="copy-row"><button class="btn btn-outline" id="copy-original-negative" type="button">复制负面原文</button><span class="copy-status" id="original-negative-copy-status" role="status" aria-live="polite"></span></div></div>}</section>
-      {prompt.related_ids.length > 0 && <section class="card related-card"><h2>也许你还会喜欢</h2><ul>{prompt.related_ids.map(id => { const related = catalog.prompts.find(item => item.id === id)!; return <li><a href={localPath(related.url)}>{related.title} →</a></li>; })}</ul></section>}
+      {prompt.related_ids.length > 0 && <section class="card related-card"><h2>相关提示词</h2><ul>{prompt.related_ids.map(id => { const related = catalog.prompts.find(item => item.id === id)!; return <li><a href={localPath(related.url)}>{related.title}</a></li>; })}</ul></section>}
     </div>
   </div>
-  <p class="revision-note">模板版本 {prompt.template_version} · 更新于 {prompt.updated_at}<br /><span>条目修订 <code>{prompt.prompt_revision}</code></span></p>
 </div>
 <script id="detail-data" type="application/json" is:inline set:html={jsonForScript({ catalog: { ...catalog, prompts: [prompt], archives: [] }, id: prompt.id })} />
 <script>import '../scripts/prompt-detail.ts';</script>

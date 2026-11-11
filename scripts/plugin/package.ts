@@ -76,7 +76,7 @@ export async function listFiles(root: string, prefix = ''): Promise<Map<string, 
   return files;
 }
 
-export async function buildPlugin(options: { output: string; mcpUrl: string; galleryUrl: string; mode: BuildMode }) {
+export async function buildPlugin(options: { output: string; mcpUrl: string; galleryUrl: string; mode: BuildMode; catalogRevision?: string }) {
   const { output, mode } = options;
   if (!['release', 'evaluation'].includes(mode)) throw new Error('未知构建模式');
   const mcpUrl = endpoint(options.mcpUrl, mode), galleryUrl = endpoint(options.galleryUrl, mode);
@@ -86,7 +86,7 @@ export async function buildPlugin(options: { output: string; mcpUrl: string; gal
     longDescription: config.description, developerName: config.developerName, category: 'Design',
     capabilities: ['Read'], websiteURL: galleryUrl, brandColor: '#778AF8',
     composerIcon: './assets/icon.svg', logo: './assets/icon.svg',
-    defaultPrompt: ['画一张水彩动漫头像，主角是戴圆眼镜的成年旅行者。'],
+    defaultPrompt: ['把我提供的原角色参考图重绘成天然呆 Q 版头像，保留原角色设计。'],
   };
   const identity = { name: config.name, version: config.version, description: config.description, author: { name: config.developerName }, homepage: galleryUrl, repository: config.repository };
   const files = new Map<string, Buffer>();
@@ -102,7 +102,8 @@ export async function buildPlugin(options: { output: string; mcpUrl: string; gal
   if (sourceDocument.data.name !== config.skillName) throw new Error('源 Skill 身份与插件配置不同');
   add(`skills/${config.skillName}/SKILL.md`, matter.stringify(`${sourceDocument.content.trim()}\n\n画廊入口：${galleryUrl}\n`, { ...sourceDocument.data, description: skillDescription(sourceDocument.data.description, galleryUrl) }));
   add(`skills/${config.skillName}/agents/openai.yaml`, `interface:\n  display_name: ${JSON.stringify(config.displayName)}\n  short_description: ${JSON.stringify(config.shortDescription)}\n  default_prompt: ${JSON.stringify(`Use $${config.skillName} to find and fill an anime image prompt.`)}\ndependencies:\n  tools:\n    - type: "mcp"\n      value: ${JSON.stringify(config.serverName)}\n      description: "Search, read and render real anime prompt templates"\n      transport: "streamable_http"\n      url: ${JSON.stringify(mcpUrl)}\npolicy:\n  allow_implicit_invocation: true\n`);
-  add('build-info.json', json({ schema_version: 1, mode, plugin: config.name, plugin_version: config.version, mcp_url: mcpUrl, gallery_url: galleryUrl, authentication: 'none', content: 'remote-current-snapshot', source_revision: `sha256:${sha256(json([...files].map(([name, bytes]) => [name, sha256(bytes)])))}` }));
+  if (options.catalogRevision && !/^sha256:[a-f0-9]{64}$/.test(options.catalogRevision)) throw new Error('发布内容版本格式错误');
+  add('build-info.json', json({ schema_version: 1, mode, plugin: config.name, plugin_version: config.version, mcp_url: mcpUrl, gallery_url: galleryUrl, authentication: 'none', content: 'remote-current-snapshot', ...(options.catalogRevision ? { catalog_revision_at_build: options.catalogRevision } : {}), source_revision: `sha256:${sha256(json([...files].map(([name, bytes]) => [name, sha256(bytes)])))}` }));
   const archive = deterministicZip(files);
   // Refuse to replace any existing output, including user files or symlinks.
   await mkdir(path.dirname(path.resolve(output)), { recursive: true });
@@ -113,12 +114,15 @@ export async function buildPlugin(options: { output: string; mcpUrl: string; gal
     const target = path.join(pluginRoot, filename);
     await mkdir(path.dirname(target), { recursive: true }); await writeFile(target, bytes, { flag: 'wx' });
   }
+  // Git-backed installs must preserve the same bytes validated in the ZIP, even with core.autocrlf=true.
+  // This belongs to the marketplace root; it is not an extra file inside the plugin or its ZIP.
+  await writeFile(path.join(marketplaceRoot, '.gitattributes'), '* -text\n', { flag: 'wx' });
   const marketplace = { name: config.marketplace, interface: { displayName: config.displayName }, plugins: [{ name: config.name, source: { source: 'local', path: `./plugins/${config.name}` }, policy: { installation: 'AVAILABLE', authentication: 'ON_INSTALL' }, category: 'Design' }] };
   await mkdir(path.join(marketplaceRoot, '.agents/plugins'), { recursive: true });
   await writeFile(path.join(marketplaceRoot, '.agents/plugins/marketplace.json'), json(marketplace));
   const archiveName = `${config.name}-${config.version}${mode === 'evaluation' ? '-evaluation' : ''}.zip`;
   await writeFile(path.join(output, archiveName), archive);
-  const report = { mode, name: config.name, version: config.version, mcp_url: mcpUrl, gallery_url: galleryUrl, archive: archiveName, archive_sha256: sha256(archive), files: Object.fromEntries([...files].map(([name, bytes]) => [name, sha256(bytes)])) };
+  const report = { mode, name: config.name, version: config.version, mcp_url: mcpUrl, gallery_url: galleryUrl, ...(options.catalogRevision ? { catalog_revision_at_build: options.catalogRevision } : {}), archive: archiveName, archive_sha256: sha256(archive), files: Object.fromEntries([...files].map(([name, bytes]) => [name, sha256(bytes)])) };
   await writeFile(path.join(output, 'build-report.json'), json(report));
   return { output: path.resolve(output), marketplaceRoot, pluginRoot, archiveName, report };
 }
@@ -135,7 +139,7 @@ export async function validatePlugin(pluginRoot: string) {
     const result = validator.getValidator(schema)(document);
     if (!result.valid) throw new Error(`${name}.json 不符合官方 Schema: ${result.errorMessage}`);
   }
-  const { mode, mcp_url: mcpUrl, gallery_url: galleryUrl } = z.object({ schema_version: z.literal(1), mode: z.enum(['release', 'evaluation']), plugin: z.literal(pluginConfig.name), plugin_version: z.literal(pluginConfig.version), mcp_url: z.string(), gallery_url: z.string(), authentication: z.literal('none'), content: z.literal('remote-current-snapshot'), source_revision: z.string().regex(/^sha256:[a-f0-9]{64}$/) }).strict().parse(info);
+  const { mode, mcp_url: mcpUrl, gallery_url: galleryUrl } = z.object({ schema_version: z.literal(1), mode: z.enum(['release', 'evaluation']), plugin: z.literal(pluginConfig.name), plugin_version: z.literal(pluginConfig.version), mcp_url: z.string(), gallery_url: z.string(), authentication: z.literal('none'), content: z.literal('remote-current-snapshot'), catalog_revision_at_build: z.string().regex(/^sha256:[a-f0-9]{64}$/).optional(), source_revision: z.string().regex(/^sha256:[a-f0-9]{64}$/) }).strict().parse(info);
   endpoint(mcpUrl, mode); endpoint(galleryUrl, mode);
   if (portable.name !== pluginConfig.name || portable.version !== pluginConfig.version || portable.$schema !== pluginSchemaUrl || compatibility.name !== portable.name || compatibility.version !== portable.version) throw new Error('插件身份或版本漂移');
   if (JSON.stringify(portable.extensions['com.openai'].interface) !== JSON.stringify(compatibility.interface)) throw new Error('展示信息漂移');
