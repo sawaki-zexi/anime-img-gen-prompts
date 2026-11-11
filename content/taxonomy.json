@@ -81,5 +81,14 @@
       ]
     }
   ],
-  "models": []
+  "models": [
+    {
+      "id": "gpt",
+      "label": "GPT",
+      "aliases": [
+        "GPT参考图",
+        "GPT reference image"
+      ]
+    }
+  ]
 }

@@ -12,10 +12,9 @@ const hasEditor = hasVariables || capabilities.customization || capabilities.for
 const usage = { 'reference-image': '在生图工具中添加你的角色图片，再粘贴下面的提示词。', text: '填写角色描述，再把下面的提示词粘贴到生图工具中。', direct: '复制即可使用。' };
 const initial = renderPrompt(catalog, { id: prompt.id, expected_revision: prompt.prompt_revision, variables: {} });
 const label = (id: string) => [...catalog.taxonomy.use_cases, ...catalog.taxonomy.styles, ...catalog.taxonomy.models].find(term => term.id === id)?.label ?? id;
-const statuses = { verified: '已验证', declared: '作者声明', unknown: '未知', incompatible: '明确不兼容' };
 const parameterNames: Record<string, string> = { transparent_background: '透明背景', seed: '种子', sampler: '采样器', steps: '步数', cfg_scale: '引导强度', width: '生成宽度', height: '生成高度', size: '尺寸', aspect_ratio: '画幅比', quality: '质量' };
-const parameterValue = (value: string | number | boolean | null) => value === null ? '未知' : typeof value === 'boolean' ? value ? '是' : '否' : String(value);
-const readableParameters = Object.entries(example.parameters).map(([key, value]) => `${parameterNames[key] ?? key}：${parameterValue(value)}`).join('；');
+const readableParameters = Object.entries(example.parameters).filter(([, value]) => value !== null).map(([key, value]) => `${parameterNames[key] ?? key}：${typeof value === 'boolean' ? value ? '是' : '否' : String(value)}`).join('；');
+const imageInfo = (item: Prompt['examples'][number]) => [!['未提供', '未知', 'unknown'].includes(item.generator.toLowerCase()) ? item.generator : '', prompt.input_modes?.length === 1 && initialMode === 'reference-image' ? '参考图生成' : ''].filter(Boolean).join(' · ');
 ---
 <div class="page-shell detail-shell" data-prompt-revision={prompt.prompt_revision}>
   <a class="back-link" href={sitePath('#gallery')}>← 画廊</a>
@@ -23,15 +22,14 @@ const readableParameters = Object.entries(example.parameters).map(([key, value])
   <div class="detail-workspace">
     <div class="detail-preview-column">
       <figure class="detail-art"><a href={localPath(example.image)} target="_blank" rel="noreferrer" aria-label="在新窗口查看原图"><img src={localPath(example.image)} width={example.width} height={example.height} alt={example.alt} loading="lazy" decoding="async" /></a></figure>
-      {prompt.examples.length > 1 && <details class="card more-examples" id="more-examples"><summary>更多配图（{prompt.examples.length - 1}）</summary>{prompt.examples.slice(1).map(item => <figure class="additional-example"><a href={localPath(item.image)} target="_blank" rel="noreferrer"><img data-src={localPath(item.image)} width={item.width} height={item.height} alt={item.alt} loading="lazy" /></a><figcaption>{item.created_at ?? '生成日期未提供'} · {item.generator} · {item.model ?? '底层模型未知'}</figcaption><p>{item.provenance}</p><label>实际生成提示词<textarea class="textarea prompt-text" readonly rows="5">{item.effective_prompt}</textarea></label></figure>)}</details>}
+      {prompt.examples.length > 1 && <details class="card more-examples" id="more-examples"><summary>更多配图（{prompt.examples.length - 1}）</summary>{prompt.examples.slice(1).map(item => <figure class="additional-example"><a href={localPath(item.image)} target="_blank" rel="noreferrer"><img data-src={localPath(item.image)} width={item.width} height={item.height} alt={item.alt} loading="lazy" /></a><figcaption>{[imageInfo(item), item.model, item.created_at].filter(Boolean).join(' · ')}</figcaption></figure>)}</details>}
       <details class="card source-card">
-        <summary>来源与生成信息</summary>
-        <p>{prompt.source.author}</p><p>{prompt.source.origin}</p>
-        <p>提示词许可：{prompt.source.text_license}</p><p>图片许可：{prompt.source.image_license}</p>
-        <dl class="generation-facts"><div><dt>生成日期</dt><dd>{example.created_at ?? '生成日期未提供'}</dd></div><div><dt>生成工具</dt><dd>{example.generator}</dd></div><div><dt>底层模型 / 版本</dt><dd>{example.model ?? '未知 · 工具未提供'}</dd></div><div><dt>尺寸</dt><dd>{example.width} × {example.height} 像素</dd></div><div><dt>已知参数</dt><dd>{readableParameters || '未提供'}</dd></div></dl>
-        {prompt.model_compatibility.length ? <ul class="compatibility-list">{prompt.model_compatibility.map(item => <li><strong>{label(item.model)} · {statuses[item.status]}</strong><p>{item.note}</p></li>)}</ul> : <p>模型兼容性未验证。</p>}
-        <ul class="condition-list">{prompt.conditions.map(condition => <li>{condition}</li>)}</ul>
-        <details><summary>完整生成记录</summary><p>{example.provenance}</p><p>生成时模板版本：{example.template_version}</p>{example.effective_prompt !== prompt.template && <><label class="label" for="effective-prompt">实际使用的提示词</label><textarea class="textarea prompt-text source-prompt" id="effective-prompt" readonly rows="8">{example.effective_prompt}</textarea></>}{Object.keys(example.variables).length > 0 && <p>实际变量：{JSON.stringify(example.variables)}</p>}{Object.keys(example.parameters).length > 0 && <p>原始参数：{JSON.stringify(example.parameters)}</p>}</details>
+        <summary>图片信息</summary>
+        {imageInfo(example) && <p>{imageInfo(example)}</p>}
+        <p>{prompt.source.author}</p>
+        {example.model && <p>模型：{example.model}</p>}
+        {example.created_at && <p>生成日期：{example.created_at}</p>}
+        {readableParameters && <p>{readableParameters}</p>}
       </details>
     </div>
     <div class="detail-editor-column">

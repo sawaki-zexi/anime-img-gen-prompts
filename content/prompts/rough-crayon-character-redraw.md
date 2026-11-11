@@ -21,14 +21,17 @@ keywords:
 input_modes:
   - reference-image
 variables: {}
-model_compatibility: []
+model_compatibility:
+  - model: gpt
+    status: declared
+    note: 用户说明配图由 GPT 使用参考图生成；具体模型版本未知，未经独立复验。
 conditions:
   - 实际生成或重绘前确认原角色参考图，保留用户指定角色的设计与特征。
   - 收录配图用于展示效果，不自动作为用户角色参考；实际生成或重绘前确认原角色参考图，仅检索或复制无需先交图。
-  - 生成工具、底层模型、版本、种子和生成日期均未提供；配图的生成条件未经独立复验。
+  - 用户说明配图由 GPT 使用参考图生成；具体模型版本、种子、参数和生成日期未提供，未经独立复验。
 source:
   author: 用户提供
-  origin: 本次用户成组提供完整提示词与配图。未独立复验生成条件。
+  origin: 本次用户成组提供完整提示词与配图，并说明由 GPT 使用参考图生成。未独立复验生成条件。
   text_license: 用户未声明许可；公开浏览不等同于授予再分发许可。
   image_license: 用户未声明许可；公开浏览不等同于授予再分发许可。
 examples:
@@ -130,12 +133,12 @@ examples:
       最终效果：低完成度、粗黑轮廓、大色块平涂、随意白色高光、明显蜡笔颗粒感的日系动漫数字涂鸦。
     variables: {}
     template_version: '1'
-    generator: 未提供
+    generator: GPT
     model: null
     parameters: {}
     created_at: null
     provenance: >-
-      用户提供配图，未独立复验生成条件。生成工具、模型、版本、种子与生成日期未提供。提示词按用户原文收录；整图为原 PNG 的无损 WebP
+      用户提供配图，并说明由 GPT 使用参考图生成，未独立复验生成条件。具体模型版本、种子、参数与生成日期未提供。提示词按用户原文收录；整图为原 PNG 的无损 WebP
       编码，背景与构图保持原样，缩略图仅等比缩放至480像素。
 related_ids: []
 ---

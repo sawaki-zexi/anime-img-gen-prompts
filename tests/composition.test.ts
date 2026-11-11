@@ -111,6 +111,7 @@ test('legacy schema-1 frozen snapshots retain identical canonical bytes, hashes 
   for (const prompt of productionCatalog.prompts) {
     const rejected = renderPrompt(productionCatalog, { ...args(prompt), additions: { custom: 'happy' } }); assert.ok(!rejected.ok); assert.equal(rejected.error.code, 'ADDITIONS_UNSUPPORTED');
     assert.deepEqual(prompt.input_modes, ['reference-image']); assert.equal(prompt.tag_template, undefined); assert.equal(prompt.customization, undefined);
+    const result = renderPrompt(productionCatalog, args(prompt)); assert.ok(result.ok); assert.equal(result.data.prompt, prompt.template); assert.equal(result.data.format, prompt.id === 'chibi-catgirl-sticker' ? 'tags' : 'text');
   }
 });
 

@@ -14,7 +14,7 @@ import { compositionCatalog } from './fixtures/catalog-data.ts';
 
 const visibleIds = `Array.from(document.querySelectorAll('#prompt-grid [data-prompt-id]'), item => item.dataset.promptId)`;
 
-test('real production gallery preserves full images and copies all user originals with reference-image and unknown-generation conditions', { timeout: 120000 }, async t => {
+test('real production gallery copies three full prompts and one tag prompt, preserves images and shows compact user-declared GPT information', { timeout: 120000 }, async t => {
   const resources = browserTestResources(t), files = await resources.fixture();
   const server = await resources.serve(path.join(projectRoot, 'dist'));
   const browser = await resources.browser(path.join(files.directory, 'chrome'));
@@ -22,7 +22,7 @@ test('real production gallery preserves full images and copies all user original
     if (!process.env.UI_SCREENSHOT_DIR) return;
     const directory = path.resolve(process.env.UI_SCREENSHOT_DIR);
     await mkdir(directory, { recursive: true });
-    await browser.evaluate(`(async () => { for (const image of document.images) { if (image.getClientRects().length && image.src) { image.scrollIntoView({ behavior: 'instant' }); await image.decode(); } } scrollTo({ top: 0, behavior: 'instant' }); })()`);
+    await browser.evaluate(`(async () => { const paint = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); for (const image of document.images) { if (image.getClientRects().length && image.src) { image.scrollIntoView({ behavior: 'instant' }); await image.decode(); await paint(); } } scrollTo({ top: 0, behavior: 'instant' }); await paint(); })()`);
     const { cssContentSize } = await browser.send('Page.getLayoutMetrics');
     const { data } = await browser.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width: cssContentSize.width, height: cssContentSize.height, scale: 1 } });
     await writeFile(path.join(directory, `${name}.png`), Buffer.from(data, 'base64'));
@@ -47,11 +47,15 @@ test('real production gallery preserves full images and copies all user original
   await browser.tabTo('.theme-toggle'); await browser.key('Enter');
   await browser.wait(`document.documentElement.dataset.theme === 'anime-light'`);
   for (const prompt of productionCatalog.prompts) {
+    const format = prompt.id === 'chibi-catgirl-sticker' ? 'tags' : 'text';
+    const copyLabel = format === 'tags' ? '复制标签' : '复制完整提示词';
     await browser.navigate(server.origin, `${visibleIds}.length === ${productionCatalog.prompts.length}`);
     const selector = `[data-prompt-id="${prompt.id}"]`;
     const excerpt = await browser.evaluate<string>(`document.querySelector(${JSON.stringify(selector + ' .card-excerpt')}).textContent`);
     assert.ok(prompt.template.startsWith(excerpt.slice(0, -1))); assert.ok(excerpt.length < prompt.template.length);
     assert.equal(await browser.evaluate(`document.querySelectorAll(${JSON.stringify(selector + ' [data-copy-format]')}).length`), 1);
+    assert.equal(await browser.evaluate(`document.querySelector(${JSON.stringify(selector + ' [data-copy-format]')}).dataset.copyFormat`), format);
+    assert.equal(await browser.evaluate(`document.querySelector(${JSON.stringify(selector + ' .card-copy')}).textContent`), copyLabel);
     await browser.click(selector + ' .card-copy');
     await browser.wait(`document.querySelector(${JSON.stringify(selector + ' .copy-status')}).textContent.includes('已复制')`);
     assert.equal((await browser.evaluate<string>('navigator.clipboard.readText()')).replaceAll('\r\n', '\n'), prompt.template);
@@ -65,27 +69,42 @@ test('real production gallery preserves full images and copies all user original
     assert.equal(await browser.evaluate('document.querySelectorAll(".detail-workspace textarea").length'), 1);
     assert.equal(await browser.evaluate('document.querySelectorAll(".detail-workspace button").length'), 1);
     assert.equal(await browser.evaluate('document.querySelector("#usage-guide").textContent'), '在生图工具中添加你的角色图片，再粘贴下面的提示词。');
-    assert.equal(await browser.evaluate('document.querySelector("#input-mode-choice, #additions-panel, [data-copy-format=tags], input[type=file]")'), null);
-    assert.equal(await browser.evaluate('document.querySelector("#copy-original").textContent'), '复制完整提示词');
+    assert.equal(await browser.evaluate('document.querySelector("#input-mode-choice, #additions-panel, input[type=file]")'), null);
+    assert.equal(await browser.evaluate('document.querySelectorAll("[data-copy-format]").length'), 1);
+    assert.equal(await browser.evaluate('document.querySelector("#copy-original").dataset.copyFormat'), format);
+    assert.equal(await browser.evaluate('document.querySelector("#copy-original").textContent'), copyLabel);
     assert.equal(await browser.evaluate('document.querySelector(".source-card").open'), false);
     await browser.tabTo('.source-card > summary'); await browser.key('Enter');
     await browser.wait(`document.querySelector('.source-card').open`);
-    const text = await browser.evaluate<string>('document.body.textContent');
-    assert.ok(text.includes('原角色参考图')); assert.ok(text.includes('不自动作为用户角色参考')); assert.ok(text.includes('生成日期未提供'));
-    assert.ok(!text.includes('实际生成示例'));
+    const text = await browser.evaluate<string>('document.querySelector(".source-card").innerText');
+    assert.ok(text.includes('图片信息')); assert.ok(text.includes('GPT · 参考图生成')); assert.ok(text.includes('用户提供'));
+    for (const hidden of ['未知', '未提供', '完整生成记录', '提示词许可', '图片许可', '具体模型', '生成日期']) assert.ok(!text.includes(hidden));
+    assert.equal(await browser.evaluate('document.querySelector(".source-card details, .source-card .compatibility-list, .source-card .condition-list")'), null);
     for (const id of proof.removed_ids) assert.ok(!text.includes(id));
-    await browser.tabTo('.source-card details summary'); await browser.key('Enter');
     assert.equal(await browser.evaluate('document.querySelector(".source-card").scrollWidth <= document.querySelector(".source-card").clientWidth'), true);
     await browser.tabTo('#copy-original'); await browser.key('Enter'); await browser.wait(`document.querySelector('#original-copy-status').textContent.includes('已复制')`);
     assert.equal((await browser.evaluate<string>('navigator.clipboard.readText()')).replaceAll('\r\n', '\n'), prompt.template);
     assert.equal(await browser.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), true);
-    await browser.click('.source-card > summary');
     await screenshot(`detail-360-${prompt.id}`);
   }
+  const catgirl = productionCatalog.prompts.find(prompt => prompt.id === 'chibi-catgirl-sticker')!;
+  await browser.navigate(`${server.origin}/prompts/${catgirl.id}/`, `document.querySelector('#copy-original')?.dataset.copyFormat === 'tags'`);
   await browser.evaluate(`Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new Error('denied'); } } })`);
   await browser.tabTo('#copy-original'); await browser.key('Enter');
   await browser.wait(`document.activeElement.id === 'original-prompt'`);
   assert.equal(await browser.evaluate('document.activeElement.selectionEnd - document.activeElement.selectionStart'), await browser.evaluate('document.activeElement.value.length'));
+  assert.equal(await browser.evaluate('document.activeElement.value'), catgirl.template);
+  await browser.navigate(server.origin, `${visibleIds}.length === ${productionCatalog.prompts.length}`);
+  await browser.evaluate(`Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new Error('denied'); } } })`);
+  await browser.tabTo('[data-prompt-id=chibi-catgirl-sticker] .card-copy'); await browser.key('Enter');
+  await browser.wait(`document.activeElement.matches('[data-prompt-id=chibi-catgirl-sticker] .card-copy-fallback textarea')`);
+  assert.equal(await browser.evaluate('document.activeElement.value'), catgirl.template);
+  assert.equal(await browser.evaluate('document.activeElement.selectionEnd - document.activeElement.selectionStart'), catgirl.template.length);
+  await browser.navigate(`${server.origin}/?q=GPT&model=GPT`, `${visibleIds}.length === 4 && document.querySelector('#applied-filters').textContent.includes('gpt')`);
+  assert.deepEqual(await browser.evaluate(visibleIds), productionCatalog.prompts.map(prompt => prompt.id));
+  assert.equal(await browser.evaluate(`[...document.querySelectorAll('.model-note')].every(note => note.textContent.includes('作者声明'))`), true);
+  await browser.navigate(`${server.origin}/?model=GPT&verified=1`, `!document.querySelector('#empty-state').hidden`);
+  assert.equal(await browser.evaluate(`${visibleIds}.length`), 0);
   for (const requested of server.requests) for (const id of proof.removed_ids) assert.ok(!requested.includes(id));
   await browser.viewport(1280);
   await browser.navigate(server.origin, `${visibleIds}.length === ${productionCatalog.prompts.length}`);
@@ -95,7 +114,10 @@ test('real production gallery preserves full images and copies all user original
   for (const prompt of productionCatalog.prompts) {
     await browser.navigate(`${server.origin}/prompts/${prompt.id}/`, `document.querySelector('.detail-art img')?.naturalWidth > 0`);
     assert.equal(await browser.evaluate(`(() => { const image = document.querySelector('.detail-art img'); return getComputedStyle(image).objectFit === 'contain' && Math.abs(image.getBoundingClientRect().width / image.getBoundingClientRect().height - image.naturalWidth / image.naturalHeight) < 0.01 && document.documentElement.scrollWidth <= innerWidth + 1; })()`), true);
-    if (prompt.id === 'cotton-doll-20cm-character-redraw') await screenshot('detail-1280-cotton-doll');
+    if (['cotton-doll-20cm-character-redraw', 'chibi-catgirl-sticker'].includes(prompt.id)) {
+      await browser.click('.source-card > summary');
+      await screenshot(`detail-1280-${prompt.id}`);
+    }
   }
   await browser.navigate(`${server.origin}/install/`, `document.querySelector('.install-status pre')`);
   assert.equal(await browser.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), true);
@@ -154,6 +176,8 @@ test('real mobile browser follows keyboard filters, pagination, share URLs, deta
   assert.deepEqual(await browser.evaluate(visibleIds), avatarIds);
   await browser.tabTo('.card-art-link'); await browser.key('Enter');
   await browser.wait(`document.querySelector('#variable-subject') && document.querySelector('#rendered-prompt')?.value.length > 0`);
+  const fixtureInfo = await browser.evaluate<string>('document.querySelector(".source-card").textContent');
+  assert.ok(fixtureInfo.includes('Sharp测试几何像素')); assert.ok(fixtureInfo.includes('2000-01-01')); assert.ok(!fixtureInfo.includes('GPT'));
   assert.equal(await browser.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), true);
   await browser.tabTo('#variable-subject'); await browser.replace('my adult traveler\n中文 $& {subject}');
   // SSR supplies a default preview; wait for client-side variable handling before exercising copy.
@@ -224,7 +248,7 @@ test('1000 synthetic records keep unique-image first-screen requests and templat
 test('real browser renders negative prompts, field limits, new taxonomy and archived routes using isolated content fixtures', { timeout: 120000 }, async t => {
   const resources = browserTestResources(t);
   const files = await resources.fixture();
-  await files.edit(data => ({ data: { ...data, id: 'fixture-negative', title: '测试夹具 · 负面模板', template_version: '2', variables: { subject: { label: '测试主体', description: '测试输入', required: true, max_length: 20, default: 'default' }, mood: { label: '测试选项', description: '测试选择', required: false, options: ['calm', 'bright'], default: 'calm', max_length: 20 } }, use_cases: ['book-cover'], negative_template: 'avoid {subject}\nno captions', related_ids: [] }, body: 'A fixture {subject}\nMood {mood}' }), 'fixture-negative.md');
+  await files.edit(data => ({ data: { ...data, id: 'fixture-negative', title: '测试夹具 · 负面模板', template_version: '2', variables: { subject: { label: '测试主体', description: '测试输入', required: true, max_length: 20, default: 'default' }, mood: { label: '测试选项', description: '测试选择', required: false, options: ['calm', 'bright'], default: 'calm', max_length: 20 } }, use_cases: ['book-cover'], negative_template: 'avoid {subject}\nno captions', related_ids: [], examples: data.examples.map((example: any) => ({ ...example, model: 'Fixture Model 2', parameters: { seed: 7, sampler: null } })) }, body: 'A fixture {subject}\nMood {mood}' }), 'fixture-negative.md');
   await files.edit((data, body) => ({ data: { ...data, status: 'archived', related_ids: ['fixture-negative'], archive_note: '仅供自动验收的归档记录' }, body }));
   const taxonomyPath = path.join(files.contentDir, 'taxonomy.json');
   const taxonomy = JSON.parse(await readFile(taxonomyPath, 'utf8'));
@@ -244,6 +268,8 @@ test('real browser renders negative prompts, field limits, new taxonomy and arch
   assert.equal(await browser.evaluate('document.querySelector("[value=book-cover]").checked'), true);
   await browser.click('.card-art-link'); await browser.wait(`document.querySelector('#rendered-negative')?.value === 'avoid default\\nno captions'`);
   assert.equal(await browser.evaluate('document.querySelector("#rendered-prompt").value'), 'A fixture default\nMood calm');
+  const imageInfo = await browser.evaluate<string>('document.querySelector(".source-card").textContent');
+  assert.ok(imageInfo.includes('Fixture Model 2')); assert.ok(imageInfo.includes('2000-01-01')); assert.ok(imageInfo.includes('种子：7')); assert.ok(!imageInfo.includes('采样器')); assert.ok(!imageInfo.includes('GPT'));
   await browser.click('#variable-subject'); await browser.replace('x'.repeat(21));
   await browser.wait(`document.querySelector('#copy-rendered-negative').disabled`);
   assert.ok((await browser.evaluate<string>('document.querySelector("#render-error").textContent')).includes('20'));

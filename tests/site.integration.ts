@@ -42,10 +42,13 @@ test('all built details, lazy-copy documents and HTTP MCP share exact templates,
     assert.deepEqual(copy.prompt, prompt); assert.equal(copy.catalog_revision, catalog.catalog_revision);
     const fetched = getResultSchema.parse((await client.callTool({ name: 'get_prompt', arguments: { id: prompt.id, include_examples: true } })).structuredContent);
     assert.ok(fetched.ok); assert.deepEqual(fetched.data, { ...prompt, capabilities: promptCapabilities(prompt) });
+    assert.deepEqual(fetched.data.capabilities.formats, [prompt.id === 'chibi-catgirl-sticker' ? 'tags' : 'text']);
+    assert.equal(fetched.data.examples[0]!.generator, 'GPT'); assert.equal(fetched.data.examples[0]!.model, null); assert.equal(fetched.data.examples[0]!.created_at, null);
+    assert.ok(fetched.data.source.text_license); assert.ok(fetched.data.source.image_license); assert.ok(fetched.data.conditions.length > 0); assert.ok(fetched.data.examples[0]!.provenance);
     const rendered = renderResultSchema.parse((await client.callTool({ name: 'render_prompt', arguments: { id: prompt.id, expected_revision: prompt.prompt_revision, variables: {} } })).structuredContent);
     assert.ok(rendered.ok); assert.equal(rendered.data.prompt, prompt.examples[0]!.effective_prompt);
   }
-  for (const input of [{}, { query: '重绘' }, { query: '蜡笔' }, { use_cases: ['avatar', 'character'], styles: ['rough-crayon', 'chibi'] }, { model: 'unknown-model', verified_only: true }]) {
+  for (const input of [{}, { query: '重绘' }, { query: '蜡笔' }, { query: '猫娘', model: 'GPT' }, { query: 'GPT' }, { model: 'GPT', verified_only: true }, { use_cases: ['avatar', 'character'], styles: ['rough-crayon', 'chibi'] }, { model: 'unknown-model', verified_only: true }]) {
     const wire = searchResultSchema.parse((await client.callTool({ name: 'search_prompts', arguments: input })).structuredContent);
     const browser = searchPrompts(publicIndex, input);
     assert.deepEqual(wire, browser);
