@@ -1,7 +1,7 @@
 {
-  "catalog_revision": "sha256:91f4117a1f51cdaf807e5fc0caf8e6ee6c9205923849e26e25410e6c6266de32",
-  "real_id": "rough-crayon-character-redraw",
-  "prompt_revision": "sha256:fe9d099c02f3c48456b133b7e597f30d55de1d70a653dc531e0b59330ff32bf7",
+  "catalog_revision": "sha256:f37c2a893062cdfa8b445baaf67af73d54bea7724590d354c3732e8d26315276",
+  "real_id": "cotton-doll-20cm-character-redraw",
+  "prompt_revision": "sha256:74916763f034af68ea87f7f8d12f34b17e6e390ab9c003af41c179fa1bbe74b7",
   "tools": [
     "get_prompt",
     "render_prompt",

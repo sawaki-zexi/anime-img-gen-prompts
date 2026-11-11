@@ -1,6 +1,6 @@
 {
   "name": "anime-prompt-atelier",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "检索动漫角色重绘提示词与收录配图，保留原文和参考图要求，再交给可用的图像工具。",
   "author": {
     "name": "sawaki-zexi"

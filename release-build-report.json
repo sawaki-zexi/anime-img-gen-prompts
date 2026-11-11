@@ -1,20 +1,20 @@
 {
   "mode": "release",
   "name": "anime-prompt-atelier",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "mcp_url": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/api/mcp",
   "gallery_url": "https://anime-prompt-atelier.memorablestone1.chatgpt.site/",
-  "catalog_revision_at_build": "sha256:91f4117a1f51cdaf807e5fc0caf8e6ee6c9205923849e26e25410e6c6266de32",
-  "archive": "anime-prompt-atelier-0.1.2.zip",
-  "archive_sha256": "4c144a36f9e81be4be1f82bca19a9404e233f88e100e9896567a8b3456400907",
+  "catalog_revision_at_build": "sha256:f37c2a893062cdfa8b445baaf67af73d54bea7724590d354c3732e8d26315276",
+  "archive": "anime-prompt-atelier-0.2.0.zip",
+  "archive_sha256": "05f0f7f45df9e5dbd9b0c2d959ddac6fe4bde4a95e2ebfec005194161387ba04",
   "files": {
-    "plugin.json": "3de6f55c82dd104c42bcf7d81d71af7db66dba57c8ee98045a9dd3db73670643",
+    "plugin.json": "4a06f66d82d244506e928bd672007007db52727c501777e760b8ca9d481437a7",
     "mcp.json": "6d0e0d2a6f06f70ff42ad996f4836b3e0e76b46a63ce436fc0d7e9b2c69cf9d7",
-    ".codex-plugin/plugin.json": "b3c86fdc864f704e8dfa3102cbb2ef37bf140af3792b5a16cd5e968272e2c412",
+    ".codex-plugin/plugin.json": "1e6c18dbe2628d08b034391df47cd8f87e98e07b1a93bc5c36ceced2a4935733",
     ".mcp.json": "f1a2b9ce307b7d411191ffcac89cdb00198d203fa0222cb09fd7baa0d66c7e1c",
     "assets/icon.svg": "aeb81193fdf6e3f7b5a3a09b3b3f95642c69b33e754630487e04432eddf40bc6",
-    "skills/anime-prompt-atelier/SKILL.md": "a098060b0bf2ed9015e5fb0b20f862b3c581c138b3e6e8e9019227c464448186",
+    "skills/anime-prompt-atelier/SKILL.md": "879f223ebb85912da7847580132c822c372fc307ee9aed4e0399fc16ff83c8fe",
     "skills/anime-prompt-atelier/agents/openai.yaml": "d80653fdff94977fd23e6827caaea17d50910d4ab0f7bd04cb341dd478dbc0fe",
-    "build-info.json": "e856d07ca607895ad63d257a01f50f20a32f823653b1ed59778ff1102c724af3"
+    "build-info.json": "33dbeba67c88d28e97881fe1724db3e2abdfc05ba39599931d401f8294f6c99b"
   }
 }
